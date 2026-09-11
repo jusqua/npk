@@ -1,0 +1,56 @@
+[configuration]
+
+entry_symbol = "${PROJECT_NAME}_init"
+compatibility_minimum = "${GODOTCPP_API_VERSION}"
+reloadable = false
+
+[libraries]
+macos.single.debug = "libnpk.macos.template_debug.dylib"
+macos.double.debug = "libnpk.macos.template_debug.double.dylib"
+macos.single.release = "libnpk.macos.template_release.dylib"
+macos.double.release = "libnpk.macos.template_release.double.dylib"
+
+ios.arm64.single.debug = "libnpk.ios.template_debug.arm64.dylib"
+ios.arm64.double.debug = "libnpk.ios.template_debug.arm64.double.dylib"
+ios.arm64.single.release = "libnpk.ios.template_release.arm64.dylib"
+ios.arm64.double.release = "libnpk.ios.template_release.arm64.double.dylib"
+
+windows.x86_32.single.debug = "npk.windows.template_debug.x86_32.dll"
+windows.x86_32.double.debug = "npk.windows.template_debug.x86_32.double.dll"
+windows.x86_32.single.release = "npk.windows.template_release.x86_32.dll"
+windows.x86_32.double.release = "npk.windows.template_release.x86_32.double.dll"
+
+windows.x86_64.single.debug = "npk.windows.template_debug.x86_64.dll"
+windows.x86_64.double.debug = "npk.windows.template_debug.x86_64.double.dll"
+windows.x86_64.single.release = "npk.windows.template_release.x86_64.dll"
+windows.x86_64.double.release = "npk.windows.template_release.x86_64.double.dll"
+
+linux.x86_64.single.debug = "libnpk.linux.template_debug.x86_64.so"
+linux.x86_64.double.debug = "libnpk.linux.template_debug.x86_64.double.so"
+linux.x86_64.single.release = "libnpk.linux.template_release.x86_64.so"
+linux.x86_64.double.release = "libnpk.linux.template_release.x86_64.double.so"
+
+linux.arm64.single.debug = "libnpk.linux.template_debug.arm64.so"
+linux.arm64.double.debug = "libnpk.linux.template_debug.arm64.double.so"
+linux.arm64.single.release = "libnpk.linux.template_release.arm64.so"
+linux.arm64.double.release = "libnpk.linux.template_release.arm64.double.so"
+
+linux.rv64.single.debug = "libnpk.linux.template_debug.rv64.so"
+linux.rv64.double.debug = "libnpk.linux.template_debug.rv64.double.so"
+linux.rv64.single.release = "libnpk.linux.template_release.rv64.so"
+linux.rv64.double.release = "libnpk.linux.template_release.rv64.double.so"
+
+android.x86_64.single.debug = "libnpk.android.template_debug.x86_64.so"
+android.x86_64.double.debug = "libnpk.android.template_debug.x86_64.double.so"
+android.x86_64.single.release = "libnpk.android.template_release.x86_64.so"
+android.x86_64.double.release = "libnpk.android.template_release.x86_64.double.so"
+
+android.arm64.single.debug = "libnpk.android.template_debug.arm64.so"
+android.arm64.double.debug = "libnpk.android.template_debug.arm64.double.so"
+android.arm64.single.release = "libnpk.android.template_release.arm64.so"
+android.arm64.double.release = "libnpk.android.template_release.arm64.double.so"
+
+web.wasm32.single.debug = "libnpk.web.template_debug.wasm32.nothreads.wasm"
+web.wasm32.double.debug = "libnpk.web.template_debug.wasm32.double.nothreads.wasm"
+web.wasm32.single.release = "libnpk.web.template_release.wasm32.nothreads.wasm"
+web.wasm32.double.release = "libnpk.web.template_release.wasm32.double.nothreads.wasm"
