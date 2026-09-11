@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://bw417g4prftyk"]
+
+[node name="GraphEdit" type="GraphEdit" unique_id=2064856206]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
