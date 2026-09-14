@@ -1,0 +1,33 @@
+[gd_scene format=3 uid="uid://b7ntjxm577uu8"]
+
+[node name="GrayNode" type="GraphNode" unique_id=223231871]
+offset_right = 210.0
+offset_bottom = 103.0
+title = "Grayscale"
+slot/0/left_enabled = true
+slot/0/left_type = 0
+slot/0/left_color = Color(1, 1, 1, 1)
+slot/0/left_icon = null
+slot/0/right_enabled = false
+slot/0/right_type = 0
+slot/0/right_color = Color(1, 1, 1, 1)
+slot/0/right_icon = null
+slot/0/draw_stylebox = true
+slot/1/left_enabled = false
+slot/1/left_type = 0
+slot/1/left_color = Color(1, 1, 1, 1)
+slot/1/left_icon = null
+slot/1/right_enabled = true
+slot/1/right_type = 0
+slot/1/right_color = Color(1, 1, 1, 1)
+slot/1/right_icon = null
+slot/1/draw_stylebox = true
+
+[node name="InputLabel" type="Label" parent="." unique_id=1666557063]
+layout_mode = 2
+text = "Input"
+
+[node name="OutputLabel" type="Label" parent="." unique_id=240227973]
+layout_mode = 2
+text = "Output"
+horizontal_alignment = 2

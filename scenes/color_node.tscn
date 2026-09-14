@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://cmu6cx15l6cf1"]
+
+[node name="ColorNode" type="GraphNode" unique_id=1401136884]
+offset_right = 334.0
+offset_bottom = 557.0
+title = "Color"
+slot/0/left_enabled = false
+slot/0/left_type = 0
+slot/0/left_color = Color(1, 1, 1, 1)
+slot/0/left_icon = null
+slot/0/right_enabled = true
+slot/0/right_type = 0
+slot/0/right_color = Color(1, 1, 1, 1)
+slot/0/right_icon = null
+slot/0/draw_stylebox = true
+
+[node name="ColorPicker" type="ColorPicker" parent="." unique_id=902636714]
+layout_mode = 2
+alignment = 1
+edit_intensity = false
+presets_visible = false

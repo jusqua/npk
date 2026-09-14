@@ -1,8 +1,27 @@
 [gd_scene format=3 uid="uid://bw417g4prftyk"]
 
+[ext_resource type="Script" uid="uid://7vv72a6mnp6l" path="res://scripts/graph_edit.gd" id="1_snvmi"]
+
 [node name="GraphEdit" type="GraphEdit" unique_id=2064856206]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+right_disconnects = true
+show_zoom_label = true
+script = ExtResource("1_snvmi")
+
+[node name="PopupMenu" type="PopupMenu" parent="." unique_id=2069877683]
+oversampling_override = 1.0
+
+[node name="FileDialog" type="FileDialog" parent="." unique_id=127134285]
+oversampling_override = 1.0
+access = 2
+
+[connection signal="connection_request" from="." to="." method="_on_connection_request"]
+[connection signal="disconnection_request" from="." to="." method="_on_disconnection_request"]
+[connection signal="node_deselected" from="." to="." method="_on_node_deselected"]
+[connection signal="node_selected" from="." to="." method="_on_node_selected"]
+[connection signal="id_pressed" from="PopupMenu" to="." method="_on_popup_menu_id_pressed"]
+[connection signal="file_selected" from="FileDialog" to="." method="_on_file_dialog_file_selected"]

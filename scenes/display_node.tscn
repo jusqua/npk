@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://4rf7tawhc08g"]
+
+[node name="DisplayNode" type="GraphNode" unique_id=2129062798]
+offset_right = 236.0
+offset_bottom = 255.0
+title = "Display"
+slot/0/left_enabled = true
+slot/0/left_type = 0
+slot/0/left_color = Color(1, 1, 1, 1)
+slot/0/left_icon = null
+slot/0/right_enabled = false
+slot/0/right_type = 0
+slot/0/right_color = Color(1, 1, 1, 1)
+slot/0/right_icon = null
+slot/0/draw_stylebox = true
+
+[node name="TextureRect" type="TextureRect" parent="." unique_id=1550744784]
+custom_minimum_size = Vector2(360, 360)
+custom_maximum_size = Vector2(360, 360)
+layout_mode = 2
+stretch_mode = 5
