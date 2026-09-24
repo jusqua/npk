@@ -2,21 +2,45 @@ cmake_minimum_required(VERSION 3.11)
 project(npk LANGUAGES CXX)
 
 include(FetchContent)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 if(NOT PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
-    file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/.gitignore" CONTENT "*\n")
+  file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/.gitignore" CONTENT "*\n")
 endif()
 
 find_package(OpenGL REQUIRED)
 
-set(GLFW_COMMIT d9d6f0f1f967807ffade6598ea9a631ebaf37a56)
+# Dependency for libpng
+set(ZLIB_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(ZLIB_COMMIT da607da739fa6047df13e66a2af6b8bec7c2a498) # 1.3.2
+FetchContent_Declare(
+  zlib
+  URL  https://github.com/madler/zlib/archive/${ZLIB_COMMIT}.tar.gz
+  DOWNLOAD_EXTRACT_TIMESTAMP ON
+)
+FetchContent_MakeAvailable(zlib)
+set(ZLIB_ROOT "${zlib_SOURCE_DIR}" CACHE INTERNAL "")
+set(ZLIB_LIBRARY ZLIB::ZLIB CACHE INTERNAL "" FORCE)
+set(ZLIB_INCLUDE_DIR "${zlib_SOURCE_DIR};${zlib_BINARY_DIR}" CACHE INTERNAL "" FORCE)
+
+# Window handler
+set(GLFW_COMMIT d9d6f0f1f967807ffade6598ea9a631ebaf37a56) # 3.5.1
 FetchContent_Declare(
   glfw
   URL https://github.com/glfw/glfw/archive/${GLFW_COMMIT}.tar.gz
   DOWNLOAD_EXTRACT_TIMESTAMP ON
 )
 FetchContent_MakeAvailable(glfw)
+
+# PNG image loader
+set(LIBPNG_COMMIT 4eeb825ab26605ed34cd74495d4cce920939fe9f)
+FetchContent_Declare(
+  libpng
+  URL https://github.com/pnggroup/libpng/archive/${LIBPNG_COMMIT}.tar.gz
+  DOWNLOAD_EXTRACT_TIMESTAMP ON
+)
+FetchContent_MakeAvailable(libpng)
 
 set(IMGUI_COMMIT 3bae66c735670619baf51391eba7f3d90a25d125)
 FetchContent_Declare(
@@ -37,13 +61,21 @@ FetchContent_Populate(imnodes)
 add_executable(${PROJECT_NAME})
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 26 CXX_STANDARD_REQUIRED ON)
 target_link_libraries(${PROJECT_NAME} PRIVATE
+  # Package dependencies
+  ZLIB::ZLIB
   # Backends
   glfw
   OpenGL::GL
+  # Image loaders
+  png_static
 )
 target_sources(${PROJECT_NAME} PRIVATE
   # Npk
   main.cpp
+  application.cpp
+  application.hpp
+  image.cpp
+  image.hpp
   # Dear ImGui
   ${imgui_SOURCE_DIR}/imgui.cpp
   ${imgui_SOURCE_DIR}/imgui.h
