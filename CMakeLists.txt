@@ -4,6 +4,7 @@ project(npk LANGUAGES CXX)
 include(FetchContent)
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 
+set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 if(NOT PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
   file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/.gitignore" CONTENT "*\n")
@@ -76,6 +77,8 @@ target_sources(${PROJECT_NAME} PRIVATE
   application.hpp
   image.cpp
   image.hpp
+  color.cpp
+  color.hpp
   # Dear ImGui
   ${imgui_SOURCE_DIR}/imgui.cpp
   ${imgui_SOURCE_DIR}/imgui.h
