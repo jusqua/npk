@@ -48,14 +48,20 @@ application::application() {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImNodes::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+    ImNodes::PushAttributeFlag(ImNodesAttributeFlags_EnableLinkDetachWithDragClick);
+    auto& imgui_io = ImGui::GetIO();
+    auto& imnodes_io = ImNodes::GetIO();
+    imgui_io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    imgui_io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+    imnodes_io.LinkDetachWithModifierClick.Modifier = &imgui_io.KeyCtrl;
+    imnodes_io.MultipleSelectModifier.Modifier = &imgui_io.KeyCtrl;
 
     ImGui::StyleColorsDark();
-    auto& style = ImGui::GetStyle();
-    style.ScaleAllSizes(main_scale);
-    style.FontScaleDpi = main_scale;
+    auto& imgui_style = ImGui::GetStyle();
+    // auto& imnodes_style = ImNodes::GetStyle();
+    imgui_style.ScaleAllSizes(main_scale);
+    imgui_style.FontScaleDpi = main_scale;
+    // imnodes_style.Flags |= ImNodesStyleFlags_GridLinesPrimary | ImNodesStyleFlags_GridSnapping;
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(nullptr);
