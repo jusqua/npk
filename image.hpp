@@ -1,18 +1,24 @@
 #pragma once
 
+#include <cstdint>
+
 namespace npk {
 
 struct image {
-    int width;
-    int height;
-    unsigned long size;
-    unsigned char color_type;
-    unsigned char bit_depth;
-    unsigned char* data;
-    unsigned int gl_id;
+    uint32_t width = 0;
+    uint32_t height = 0;
+    uint64_t size = 0;
+    uint8_t color_type = 0;
+    uint8_t bit_depth = 0;
+    uint8_t channels = 0;
+    uint32_t texture_id = 0;
+    uint8_t* data = nullptr;
 
-    static auto load(const char* filepath) -> image*;
-    static auto store(const char *filename, image* img) -> void;
+    ~image();
+
+    auto load(const char* filepath) -> void;
+    auto store(const char* filepath) -> void;
+    auto clone(image* img) -> void;
     auto upload(void) -> void;
 };
 
