@@ -11,6 +11,7 @@ if(NOT PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
 endif()
 
 find_package(OpenGL REQUIRED)
+find_package(AdaptiveCpp REQUIRED CONFIG)
 
 # Dependency for libpng
 set(ZLIB_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
@@ -108,3 +109,4 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   # Nelarius ImNodes
   ${imnodes_SOURCE_DIR}
 )
+add_sycl_to_target(TARGET ${PROJECT_NAME})
