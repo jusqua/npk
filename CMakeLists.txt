@@ -60,6 +60,14 @@ FetchContent_Declare(
 )
 FetchContent_Populate(imnodes)
 
+set(HOK_COMMIT main)
+FetchContent_Declare(
+  hok
+  URL https://github.com/jusqua/hok/archive/${HOK_COMMIT}.tar.gz
+  DOWNLOAD_EXTRACT_TIMESTAMP ON
+)
+FetchContent_Populate(hok)
+
 add_executable(${PROJECT_NAME})
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 26 CXX_STANDARD_REQUIRED ON)
 target_link_libraries(${PROJECT_NAME} PRIVATE
@@ -76,6 +84,8 @@ target_sources(${PROJECT_NAME} PRIVATE
   main.cpp
   application.cpp
   application.hpp
+  processing.cpp
+  processing.hpp
   image.cpp
   image.hpp
   color.cpp
@@ -100,6 +110,8 @@ target_sources(${PROJECT_NAME} PRIVATE
   ${imnodes_SOURCE_DIR}/imnodes.cpp
   ${imnodes_SOURCE_DIR}/imnodes.h
   ${imnodes_SOURCE_DIR}/imnodes_internal.h
+  # HOK
+  ${hok_SOURCE_DIR}/hok.hpp
 )
 target_include_directories(${PROJECT_NAME} PUBLIC
   # Dear ImGui
@@ -108,5 +120,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   ${imgui_SOURCE_DIR}/backends
   # Nelarius ImNodes
   ${imnodes_SOURCE_DIR}
+  # HOK
+  ${hok_SOURCE_DIR}
 )
 add_sycl_to_target(TARGET ${PROJECT_NAME})

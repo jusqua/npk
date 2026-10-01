@@ -2,6 +2,7 @@
 #include "image.hpp"
 #include "color.hpp"
 #include "imgui_internal.h"
+#include "processing.hpp"
 
 #include <imgui.h>
 #include <imnodes.h>
@@ -190,22 +191,15 @@ auto node::evaluate(std::stack<node_data*>& stack) -> void {
     case node_kind::adjust_color: {
         if (stack.size() != 2) return;
 
-        auto clr = reinterpret_cast<float*>(&stack.top()->clr);
+        auto clr = stack.top()->clr;
         stack.pop();
 
         data.img = std::make_shared<image>();
         data.img->clone(stack.top()->img.get());
         stack.pop();
-
         auto& img = data.img;
 
-        // TODO: Adjust color backend
-        // adjust_color(img, clr);
-        for (auto i = 0; i < img->size; i += img->channels) {
-            for (auto j = 0; j < img->channels; j++) {
-                img->data[i + j] *= clr[j];
-            }
-        }
+        adjust_color_2d(img.get(), clr);
 
         stack.push(&data);
 
