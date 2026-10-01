@@ -105,7 +105,7 @@ auto image::load(const char* filepath) -> void {
 }
 
 auto image::store(const char *filepath) -> void {
-    if (data != nullptr) {
+    if (data == nullptr) {
         std::println(std::cerr, "NPK Error: Image data must be loaded before storing");
         abort();
     }
