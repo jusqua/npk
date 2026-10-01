@@ -48,17 +48,20 @@ attribute::attribute(attribute_kind kind)
 
 struct link {
     int uid;
-    int from;
-    int to;
+    int from_node;
+    int from_attribute;
+    int to_node;
+    int to_attribute;
 
-    link(int from, int to);
+    link(int from_node, int from_attribute, int to_node, int to_attribute);
     auto render(void) -> void;
 };
 
-link::link(int from, int to) : uid(get_uid()), from(from), to(to) {}
+link::link(int from_node, int from_attribute, int to_node, int to_attribute)
+    : uid(get_uid()), from_node(from_node), from_attribute(from_attribute), to_node(to_node), to_attribute(to_attribute) {}
 
 auto link::render(void) -> void {
-    ImNodes::Link(uid, from, to);
+    ImNodes::Link(uid, from_attribute, to_attribute);
 }
 
 enum struct node_mark {
@@ -221,6 +224,7 @@ struct graph {
     std::unordered_map<int, std::shared_ptr<link>> links;
 
     auto attach_node(std::shared_ptr<node>&& n);
+    auto detach_node(int uid);
     auto create_link(int from, int to);
     auto delete_link(int uid);
 
@@ -234,13 +238,25 @@ struct graph {
 auto graph::attach_node(std::shared_ptr<node>&& n) {
     nodes[n->uid] = n;
     neighbors[n->uid] = {};
+    ImNodes::SetNodeScreenSpacePos(n->uid, ImGui::GetMousePos());
+}
+
+auto graph::detach_node(int uid) {
+    nodes.erase(uid);
+    neighbors.erase(uid);
+
+    for (auto it = links.begin(); it != links.end();) {
+        auto& l = it->second;
+        if (l->from_node != uid && l->to_node != uid) {
+            it++;
+            continue;
+        }
+
+        it = links.erase(it);
+    }
 }
 
 auto graph::create_link(int from, int to) {
-    auto new_link = std::make_shared<link>(from, to);
-    links[new_link->uid] = std::move(new_link);
-
-    // Find the neighbor
     std::shared_ptr<node> from_node;
     std::shared_ptr<node> to_node;
     for (auto& [i, n] : nodes) {
@@ -255,6 +271,9 @@ auto graph::create_link(int from, int to) {
             to_node = n;
         }
     }
+
+    auto new_link = std::make_shared<link>(from_node->uid, from, to_node->uid, to);
+    links[new_link->uid] = std::move(new_link);
     neighbors[from_node->uid].push_back(to_node);
 }
 
@@ -322,13 +341,38 @@ auto graph::render(void) -> void {
     ImGui::Begin("Main", nullptr, window_flags);
 
     ImNodes::BeginNodeEditor();
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {10, 10});
+    if (ImGui::BeginPopupContextWindow("Add Node Menu")) {
+        if (ImGui::MenuItem("Image"))
+            attach_node(std::make_shared<npk::node>(npk::node_kind::image));
+        if (ImGui::MenuItem("Color"))
+            attach_node(std::make_shared<npk::node>(npk::node_kind::color));
+        ImGui::Separator();
+        if (ImGui::MenuItem("Adjust Color"))
+            attach_node(std::make_shared<npk::node>(npk::node_kind::adjust_color));
+        ImGui::Separator();
+        if (ImGui::MenuItem("Display Image"))
+            attach_node(std::make_shared<npk::node>(npk::node_kind::display_image));
+        ImGui::EndPopup();
+    }
+    ImGui::PopStyleVar();
+
     for (auto& [_, n] : nodes) n->render();
     for (auto& [_, l] : links) l->render();
     ImNodes::EndNodeEditor();
 
     int from, to, uid;
     if (ImNodes::IsLinkCreated(&from, &to)) create_link(from, to);
-    else if (ImNodes::IsLinkDestroyed(&uid)) delete_link(uid);
+    if (ImNodes::IsLinkDestroyed(&uid)) delete_link(uid);
+
+    if (ImGui::IsKeyReleased(ImGuiKey_Delete) && ImNodes::NumSelectedNodes() > 0) {
+        auto to_delete = std::vector<int>(ImNodes::NumSelectedNodes());
+        ImNodes::GetSelectedNodes(to_delete.data());
+        for (auto& uid : to_delete) {
+            detach_node(uid);
+        }
+        ImNodes::ClearNodeSelection();
+    }
 
     ImGui::End();
 
@@ -347,10 +391,6 @@ int main(void) {
     auto app = npk::application();
 
     auto graph = npk::graph();
-    graph.attach_node(std::make_shared<npk::node>(npk::node_kind::display_image));
-    graph.attach_node(std::make_shared<npk::node>(npk::node_kind::image));
-    graph.attach_node(std::make_shared<npk::node>(npk::node_kind::adjust_color));
-    graph.attach_node(std::make_shared<npk::node>(npk::node_kind::color));
 
     app.render([&] {
         graph.render();
