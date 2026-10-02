@@ -1,11 +1,13 @@
 #include "application.hpp"
 #include "image.hpp"
 #include "color.hpp"
-#include "imgui_internal.h"
 #include "processing.hpp"
 
+#include <filesystem>
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <imnodes.h>
+#include <nfd.hpp>
 #include <GLFW/glfw3.h>
 
 #include <memory>
@@ -71,6 +73,7 @@ enum struct node_mark {
 };
 
 struct node_data {
+    std::filesystem::path path;
     std::shared_ptr<image> img;
     color clr;
 };
@@ -95,9 +98,7 @@ node::node(node_kind kind) : uid(get_uid()), kind(kind) {
     case node_kind::image:
         title = "Image";
         data.img = std::make_shared<image>();
-        data.img->load("profile.png");
         outattributes.push_back(std::make_shared<attribute>(attribute_kind::image));
-        data.img->upload();
         break;
     case node_kind::color:
         title = "Color";
@@ -126,6 +127,32 @@ auto node::render(void) -> void {
         ImNodes::BeginNodeTitleBar();
         ImGui::TextUnformatted("Image Picker");
         ImNodes::EndNodeTitleBar();
+
+        ImGui::BeginGroup();
+        if (ImGui::Button("^", {16, 16})) {
+            auto path = NFD::UniquePath();
+            auto filter = std::vector<nfdfilteritem_t>{{"PNG", "png"}};
+            auto result = NFD::OpenDialog(path, filter.data(), filter.size());
+            if (result == NFD_OKAY) {
+                data.path = path.get();
+                data.img->unload();
+                data.img->load(path.get());
+                data.img->upload();
+            }
+        }
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {6, 6});
+            ImGui::SetTooltip("Open image file");
+            ImGui::PopStyleVar();
+        }
+        ImGui::SameLine();
+        ImGui::TextDisabled("%s", data.path.filename().c_str());
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {6, 6});
+            ImGui::SetTooltip("%s", data.path.c_str());
+            ImGui::PopStyleVar();
+        }
+        ImGui::EndGroup();
 
         ImGui::Image(data.img->texture_id, ImVec2(256, 256));
 
@@ -312,8 +339,10 @@ auto graph::evaluate(void) -> void {
 
     traverse(trail);
 
+    if (!trail.empty())
+        std::print("NPK Info: Evaluation Order = ");
     while (!trail.empty()) {
-        auto n = nodes[trail.top()];
+        auto& n = nodes[trail.top()];
         trail.pop();
 
         std::print("{}", n->title);
