@@ -100,7 +100,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 )
 target_sources(${PROJECT_NAME} PRIVATE
   # Npk
-  main.cpp
+  utils.cpp
+  utils.hpp
   application.cpp
   application.hpp
   processing.cpp
@@ -109,6 +110,15 @@ target_sources(${PROJECT_NAME} PRIVATE
   image.hpp
   color.cpp
   color.hpp
+  attribute.cpp
+  attribute.hpp
+  node.cpp
+  node.hpp
+  link.cpp
+  link.hpp
+  graph.cpp
+  graph.hpp
+  main.cpp
   # Dear ImGui
   ${imgui_SOURCE_DIR}/imgui.cpp
   ${imgui_SOURCE_DIR}/imgui.h
