@@ -26,6 +26,20 @@ set(ZLIB_ROOT "${zlib_SOURCE_DIR}" CACHE INTERNAL "")
 set(ZLIB_LIBRARY ZLIB::ZLIB CACHE INTERNAL "" FORCE)
 set(ZLIB_INCLUDE_DIR "${zlib_SOURCE_DIR};${zlib_BINARY_DIR}" CACHE INTERNAL "" FORCE)
 
+# File picker
+set(NFD_X11 OFF)
+set(NFD_WAYLAND ON)
+set(NFD_PORTAL ON)
+set(NFD_COMMIT 5381ddbf0b33d3b7b4c5679b0e796d77848a158d) # 1.4.0
+FetchContent_Declare(
+  nfd
+  GIT_REPOSITORY https://github.com/btzy/nativefiledialog-extended
+  GIT_TAG ${NFD_COMMIT}
+  GIT_SHALLOW ON
+  GIT_SUBMODULES_RECURSE ON
+)
+FetchContent_MakeAvailable(nfd)
+
 # Window handler
 set(GLFW_COMMIT d9d6f0f1f967807ffade6598ea9a631ebaf37a56) # 3.5.1
 FetchContent_Declare(
@@ -49,30 +63,35 @@ FetchContent_Declare(
   imgui
   URL https://github.com/ocornut/imgui/archive/${IMGUI_COMMIT}.tar.gz
   DOWNLOAD_EXTRACT_TIMESTAMP ON
+  SOURCE_SUBDIR .cmake-ignore
 )
-FetchContent_Populate(imgui)
+FetchContent_MakeAvailable(imgui)
 
 set(IMNODES_COMMIT 9de0b5c04218a2d35410774ee1ca637f4352198a)
 FetchContent_Declare(
   imnodes
   URL https://github.com/sthagen/Nelarius-imnodes/archive/${IMNODES_COMMIT}.tar.gz
   DOWNLOAD_EXTRACT_TIMESTAMP ON
+  SOURCE_SUBDIR .cmake-ignore
 )
-FetchContent_Populate(imnodes)
+FetchContent_MakeAvailable(imnodes)
 
 set(HOK_COMMIT main)
 FetchContent_Declare(
   hok
-  URL https://github.com/jusqua/hok/archive/${HOK_COMMIT}.tar.gz
-  DOWNLOAD_EXTRACT_TIMESTAMP ON
+  GIT_REPOSITORY https://github.com/jusqua/hok
+  GIT_TAG ${HOK_COMMIT}
+  SOURCE_SUBDIR .cmake-ignore
 )
-FetchContent_Populate(hok)
+FetchContent_MakeAvailable(hok)
 
 add_executable(${PROJECT_NAME})
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 26 CXX_STANDARD_REQUIRED ON)
 target_link_libraries(${PROJECT_NAME} PRIVATE
   # Package dependencies
   ZLIB::ZLIB
+  # File picker
+  nfd
   # Backends
   glfw
   OpenGL::GL

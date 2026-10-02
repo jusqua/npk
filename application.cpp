@@ -1,10 +1,11 @@
 #include "application.hpp"
 
-#include <GL/gl.h>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include <imnodes.h>
+#include <nfd.hpp>
+#include <GL/gl.h>
 #include <GLFW/glfw3.h>
 
 #include <iostream>
@@ -19,6 +20,7 @@ static auto glfw_error_callback(int error, const char* description) -> void {
 namespace npk {
 
 application::application() {
+    NFD::Init();
     if (window != nullptr) {
         std::println(std::cerr, "NPK Error: Application already instantiated");
         abort();
@@ -75,6 +77,7 @@ application::~application() {
 
     glfwDestroyWindow(window);
     glfwTerminate();
+    NFD::Quit();
 }
 
 
