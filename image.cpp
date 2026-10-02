@@ -104,6 +104,21 @@ auto image::load(const char* filepath) -> void {
     png_destroy_read_struct(&png, &info, NULL);
 }
 
+auto image::unload(void) -> void {
+    if (this->data != nullptr)
+        delete[] this->data;
+    if (this->texture_id != 0)
+        glDeleteTextures(1, &texture_id);
+    this->bit_depth = 0;
+    this->channels = 0;
+    this->color_type = 0;
+    this->height = 0;
+    this->width = 0;
+    this->size = 0;
+    this->texture_id = 0;
+    this->data = nullptr;
+}
+
 auto image::store(const char *filepath) -> void {
     if (data == nullptr) {
         std::println(std::cerr, "NPK Error: Image data must be loaded before storing");
@@ -173,6 +188,7 @@ auto image::clone(image* img) -> void {
     this->height = img->height;
     this->width = img->width;
     this->size = img->size;
+    this->texture_id = 0;
     this->data = new uint8_t[this->size];
     for (auto i = 0; i < img->size; i++) {
         this->data[i] = img->data[i];
@@ -200,13 +216,7 @@ auto image::upload(void) -> void {
 }
 
 image::~image() {
-    if (data != nullptr) {
-        delete[] data;
-    }
-
-    if (texture_id != 0) {
-        glDeleteTextures(1, &texture_id);
-    }
+    unload();
 }
 
 } // namespace npk

@@ -17,6 +17,7 @@ struct image {
     ~image();
 
     auto load(const char* filepath) -> void;
+    auto unload(void) -> void;
     auto store(const char* filepath) -> void;
     auto clone(image* img) -> void;
     auto upload(void) -> void;
