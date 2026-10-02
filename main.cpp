@@ -17,6 +17,7 @@
 #include <vector>
 #include <print>
 
+// TODO: Split this into different files
 namespace npk {
 
 static int uid_count = 0;
@@ -28,12 +29,20 @@ static int get_uid(void) {
 enum struct attribute_kind {
     image,
     color,
+    value,
 };
 
 enum struct node_kind {
     image,
     color,
+    value,
+    adjust_intensity,
+    adjust_contrast,
     adjust_color,
+    convert_gray,
+    invert_color,
+    thresholding,
+    binarization,
     display_image,
 };
 
@@ -76,6 +85,7 @@ struct node_data {
     std::filesystem::path path;
     std::shared_ptr<image> img;
     color clr;
+    float value;
 };
 
 struct node {
@@ -96,20 +106,63 @@ struct node {
 node::node(node_kind kind) : uid(get_uid()), kind(kind) {
     switch (kind) {
     case node_kind::image:
-        title = "Image";
+        title = "Image Picker";
         data.img = std::make_shared<image>();
         outattributes.push_back(std::make_shared<attribute>(attribute_kind::image));
         break;
     case node_kind::color:
-        title = "Color";
+        title = "Color Picker";
         data.clr = color(1, 1, 1, 1);
         outattributes.push_back(std::make_shared<attribute>(attribute_kind::color));
+        break;
+    case node_kind::value:
+        title = "Value Picker";
+        data.value = 0;
+        outattributes.push_back(std::make_shared<attribute>(attribute_kind::value));
+        break;
+    case node_kind::adjust_intensity:
+        title = "Adjust Intensity";
+        inattributes.push_back(std::make_shared<attribute>(attribute_kind::image));
+        inattributes.push_back(std::make_shared<attribute>(attribute_kind::value));
+        outattributes.push_back(std::make_shared<attribute>(attribute_kind::image));
+        break;
+    case node_kind::adjust_contrast:
+        title = "Adjust Contrast";
+        inattributes.push_back(std::make_shared<attribute>(attribute_kind::image));
+        inattributes.push_back(std::make_shared<attribute>(attribute_kind::value));
+        outattributes.push_back(std::make_shared<attribute>(attribute_kind::image));
         break;
     case node_kind::adjust_color:
         title = "Adjust Color";
         data.img = nullptr;
         inattributes.push_back(std::make_shared<attribute>(attribute_kind::image));
         inattributes.push_back(std::make_shared<attribute>(attribute_kind::color));
+        outattributes.push_back(std::make_shared<attribute>(attribute_kind::image));
+        break;
+    case node_kind::convert_gray:
+        title = "Convert to Grayscale";
+        data.img = nullptr;
+        inattributes.push_back(std::make_shared<attribute>(attribute_kind::image));
+        outattributes.push_back(std::make_shared<attribute>(attribute_kind::image));
+        break;
+    case node_kind::invert_color:
+        title = "Invert Color";
+        data.img = nullptr;
+        inattributes.push_back(std::make_shared<attribute>(attribute_kind::image));
+        outattributes.push_back(std::make_shared<attribute>(attribute_kind::image));
+        break;
+    case node_kind::thresholding:
+        title = "Thresholding";
+        data.img = nullptr;
+        inattributes.push_back(std::make_shared<attribute>(attribute_kind::image));
+        inattributes.push_back(std::make_shared<attribute>(attribute_kind::value));
+        outattributes.push_back(std::make_shared<attribute>(attribute_kind::image));
+        break;
+    case node_kind::binarization:
+        title = "Binarization";
+        data.img = nullptr;
+        inattributes.push_back(std::make_shared<attribute>(attribute_kind::image));
+        inattributes.push_back(std::make_shared<attribute>(attribute_kind::value));
         outattributes.push_back(std::make_shared<attribute>(attribute_kind::image));
         break;
     case node_kind::display_image:
@@ -122,12 +175,11 @@ node::node(node_kind kind) : uid(get_uid()), kind(kind) {
 
 auto node::render(void) -> void {
     ImNodes::BeginNode(uid);
+    ImNodes::BeginNodeTitleBar();
+    ImGui::TextUnformatted(title.data());
+    ImNodes::EndNodeTitleBar();
     switch (kind) {
     case node_kind::image:
-        ImNodes::BeginNodeTitleBar();
-        ImGui::TextUnformatted("Image Picker");
-        ImNodes::EndNodeTitleBar();
-
         ImGui::BeginGroup();
         if (ImGui::Button("^", {16, 16})) {
             auto path = NFD::UniquePath();
@@ -154,31 +206,49 @@ auto node::render(void) -> void {
         }
         ImGui::EndGroup();
 
-        ImGui::Image(data.img->texture_id, ImVec2(256, 256));
-
         ImNodes::BeginOutputAttribute(outattributes[0]->uid);
-        ImGui::TextAligned(1.f, 256, "Image");
+        ImGui::Image(data.img->texture_id, ImVec2(256, 256));
         ImNodes::EndOutputAttribute();
         break;
     case node_kind::color:
-        ImNodes::BeginNodeTitleBar();
-        ImGui::TextUnformatted("Color Picker");
-        ImNodes::EndNodeTitleBar();
 
+        ImNodes::BeginOutputAttribute(outattributes[0]->uid);
         ImGui::PushItemWidth(256);
         ImGui::ColorPicker4("", reinterpret_cast<float*>(&data.clr), ImGuiColorEditFlags_NoOptions | ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_NoSidePreview);
         ImGui::PopItemWidth();
-
-        ImNodes::BeginOutputAttribute(outattributes[0]->uid);
-        ImGui::TextAligned(1.f, 256, "Color");
         ImNodes::EndOutputAttribute();
 
         break;
-    case node_kind::adjust_color:
-        ImNodes::BeginNodeTitleBar();
-        ImGui::TextUnformatted("Adjust Color");
-        ImNodes::EndNodeTitleBar();
+    case node_kind::value:
+        // XXX: This "value" node is too repetitive
+        ImNodes::BeginOutputAttribute(outattributes[0]->uid);
+        ImGui::PushItemWidth(96);
+        ImGui::InputFloat("", &data.value, 1.f, 1.f);
+        ImGui::PopItemWidth();
+        ImNodes::EndOutputAttribute();
 
+        break;
+    case node_kind::adjust_intensity:
+    case node_kind::adjust_contrast:
+        ImGui::BeginGroup();
+
+        ImNodes::BeginInputAttribute(inattributes[0]->uid);
+        ImGui::TextUnformatted("Image");
+        ImNodes::EndInputAttribute();
+
+        ImNodes::BeginInputAttribute(inattributes[1]->uid);
+        ImGui::TextUnformatted("Factor");
+        ImNodes::EndInputAttribute();
+
+        ImGui::SameLine();
+
+        ImNodes::BeginOutputAttribute(outattributes[0]->uid);
+        ImGui::TextUnformatted("Image");
+        ImNodes::EndOutputAttribute();
+
+        ImGui::EndGroup();
+        break;
+    case node_kind::adjust_color:
         ImGui::BeginGroup();
 
         ImNodes::BeginInputAttribute(inattributes[0]->uid);
@@ -197,11 +267,43 @@ auto node::render(void) -> void {
 
         ImGui::EndGroup();
         break;
-    case node_kind::display_image:
-        ImNodes::BeginNodeTitleBar();
-        ImGui::TextUnformatted("Display Image");
-        ImNodes::EndNodeTitleBar();
+    case node_kind::convert_gray:
+    case node_kind::invert_color:
+        ImGui::BeginGroup();
 
+        ImNodes::BeginInputAttribute(inattributes[0]->uid);
+        ImGui::TextUnformatted("Image");
+        ImNodes::EndInputAttribute();
+
+        ImGui::SameLine();
+
+        ImNodes::BeginOutputAttribute(outattributes[0]->uid);
+        ImGui::TextUnformatted("Image");
+        ImNodes::EndOutputAttribute();
+
+        ImGui::EndGroup();
+        break;
+    case node_kind::thresholding:
+    case node_kind::binarization:
+        ImGui::BeginGroup();
+
+        ImNodes::BeginInputAttribute(inattributes[0]->uid);
+        ImGui::TextUnformatted("Image");
+        ImNodes::EndInputAttribute();
+
+        ImNodes::BeginInputAttribute(inattributes[1]->uid);
+        ImGui::TextUnformatted("Threshold");
+        ImNodes::EndInputAttribute();
+
+        ImGui::SameLine();
+
+        ImNodes::BeginOutputAttribute(outattributes[0]->uid);
+        ImGui::TextUnformatted("Image");
+        ImNodes::EndOutputAttribute();
+
+        ImGui::EndGroup();
+        break;
+    case node_kind::display_image:
         ImGui::Image(data.img != nullptr ? data.img->texture_id : 0, ImVec2(256, 256));
 
         ImNodes::BeginInputAttribute(inattributes[0]->uid);
@@ -216,8 +318,43 @@ auto node::evaluate(std::stack<node_data*>& stack) -> void {
     switch (kind) {
     case node_kind::image:
     case node_kind::color:
+    case node_kind::value:
         stack.push(&data);
         break;
+    case node_kind::adjust_intensity: {
+        if (stack.size() != 2) return;
+
+        auto value = stack.top()->value;
+        stack.pop();
+
+        data.img = std::make_shared<image>();
+        data.img->clone(stack.top()->img.get());
+        stack.pop();
+        auto& img = data.img;
+
+        adjust_intensity_2d(img.get(), value);
+
+        stack.push(&data);
+
+        break;
+    }
+    case node_kind::adjust_contrast: {
+        if (stack.size() != 2) return;
+
+        auto value = stack.top()->value;
+        stack.pop();
+
+        data.img = std::make_shared<image>();
+        data.img->clone(stack.top()->img.get());
+        stack.pop();
+        auto& img = data.img;
+
+        adjust_contrast_2d(img.get(), value);
+
+        stack.push(&data);
+
+        break;
+    }
     case node_kind::adjust_color: {
         if (stack.size() != 2) return;
 
@@ -230,6 +367,68 @@ auto node::evaluate(std::stack<node_data*>& stack) -> void {
         auto& img = data.img;
 
         adjust_color_2d(img.get(), clr);
+
+        stack.push(&data);
+
+        break;
+    }
+    case node_kind::convert_gray: {
+        if (stack.size() != 1) return;
+
+        data.img = std::make_shared<image>();
+        data.img->clone(stack.top()->img.get());
+        stack.pop();
+        auto& img = data.img;
+
+        convert_gray_2d(img.get());
+
+        stack.push(&data);
+
+        break;
+    }
+    case node_kind::invert_color: {
+        if (stack.size() != 1) return;
+
+        data.img = std::make_shared<image>();
+        data.img->clone(stack.top()->img.get());
+        stack.pop();
+        auto& img = data.img;
+
+        invert_color_2d(img.get());
+
+        stack.push(&data);
+
+        break;
+    }
+    case node_kind::thresholding: {
+        if (stack.size() != 2) return;
+
+        auto threshold = stack.top()->value;
+        stack.pop();
+
+        data.img = std::make_shared<image>();
+        data.img->clone(stack.top()->img.get());
+        stack.pop();
+        auto& img = data.img;
+
+        thresholding_2d(img.get(), threshold);
+
+        stack.push(&data);
+
+        break;
+    }
+    case node_kind::binarization: {
+        if (stack.size() != 2) return;
+
+        auto threshold = stack.top()->value;
+        stack.pop();
+
+        data.img = std::make_shared<image>();
+        data.img->clone(stack.top()->img.get());
+        stack.pop();
+        auto& img = data.img;
+
+        binarization_2d(img.get(), threshold);
 
         stack.push(&data);
 
@@ -333,6 +532,7 @@ auto graph::traverse(std::stack<int>& stack) -> void {
     }
 }
 
+// TODO: Gerenate different stack for every tree in a forest
 auto graph::evaluate(void) -> void {
     std::stack<int> trail;
     std::stack<node_data*> stack;
@@ -372,13 +572,27 @@ auto graph::render(void) -> void {
     ImNodes::BeginNodeEditor();
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {10, 10});
     if (ImGui::BeginPopupContextWindow("Add Node Menu")) {
-        if (ImGui::MenuItem("Image"))
+        if (ImGui::MenuItem("Image Picker"))
             attach_node(std::make_shared<npk::node>(npk::node_kind::image));
-        if (ImGui::MenuItem("Color"))
+        if (ImGui::MenuItem("Color Picker"))
             attach_node(std::make_shared<npk::node>(npk::node_kind::color));
+        if (ImGui::MenuItem("Value Picker"))
+            attach_node(std::make_shared<npk::node>(npk::node_kind::value));
         ImGui::Separator();
+        if (ImGui::MenuItem("Adjust Intensity"))
+            attach_node(std::make_shared<npk::node>(npk::node_kind::adjust_intensity));
+        if (ImGui::MenuItem("Adjust Constrast"))
+            attach_node(std::make_shared<npk::node>(npk::node_kind::adjust_contrast));
         if (ImGui::MenuItem("Adjust Color"))
             attach_node(std::make_shared<npk::node>(npk::node_kind::adjust_color));
+        if (ImGui::MenuItem("Invert Color"))
+            attach_node(std::make_shared<npk::node>(npk::node_kind::invert_color));
+        if (ImGui::MenuItem("Convert to Grayscale"))
+            attach_node(std::make_shared<npk::node>(npk::node_kind::convert_gray));
+        if (ImGui::MenuItem("Thresholding"))
+            attach_node(std::make_shared<npk::node>(npk::node_kind::thresholding));
+        if (ImGui::MenuItem("Binarization"))
+            attach_node(std::make_shared<npk::node>(npk::node_kind::binarization));
         ImGui::Separator();
         if (ImGui::MenuItem("Display Image"))
             attach_node(std::make_shared<npk::node>(npk::node_kind::display_image));
