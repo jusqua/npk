@@ -1,4 +1,5 @@
 #include "application.hpp"
+#include "node.hpp"
 
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
@@ -67,6 +68,8 @@ application::application() {
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(nullptr);
+
+    node_module_init();
 }
 
 application::~application() {
