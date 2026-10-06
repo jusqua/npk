@@ -1,21 +1,28 @@
 #pragma once
 
-#include <string>
+#include <string_view>
 
 namespace npk {
 
-enum struct attribute_kind {
-    image,
-    color,
-    value,
-};
+class attribute {
+private:
+    int m_uid;
 
-struct attribute {
-    int uid;
-    std::string description;
-    attribute_kind kind;
+    std::string_view m_name;
+    std::string_view m_description;
 
-    attribute(attribute_kind kind);
+    void* m_data;
+
+public:
+    attribute(std::string_view name, std::string_view description = "");
+
+    auto uid(void) -> int;
+
+    auto name(void) -> std::string_view;
+    auto description(void) -> std::string_view;
+
+    auto set(void* data) -> void;
+    auto get(void) -> void*;
 };
 
 } // namespace npk
