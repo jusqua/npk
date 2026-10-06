@@ -14,7 +14,7 @@ static auto launch_kernel_2d(npk::image* img, K&& kernel) -> void {
 
 namespace npk {
 
-auto adjust_intensity_2d(image* img, float factor) -> void {
+auto adjust_brightness_2d(image* img, float factor) -> void {
     launch_kernel_2d(img, [factor](auto buffer) { return hok::intensity<2>(buffer, buffer, factor); });
 }
 

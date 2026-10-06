@@ -5,7 +5,7 @@
 
 namespace npk {
 
-auto adjust_intensity_2d(image* img, float factor) -> void;
+auto adjust_brightness_2d(image* img, float factor) -> void;
 auto adjust_contrast_2d(image* img, float factor) -> void;
 auto adjust_color_2d(image* img, color& clr) -> void;
 auto convert_gray_2d(image* img) -> void;
