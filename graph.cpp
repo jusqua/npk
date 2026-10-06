@@ -24,11 +24,13 @@ auto graph::detach_node(int uid) -> void {
     m_nodes.erase(uid);
 
     for (auto& [_, ls] : m_links) {
-        for (auto it = ls.begin(); it != ls.end(); it++) {
-            if (!it->with_node(uid)) continue;
+        for (auto it = ls.begin(); it != ls.end();) {
+            if (!it->with_node(uid)) {
+                it++;
+                continue;
+            }
 
-            ls.erase(it);
-            return;
+            it = ls.erase(it);
         }
     }
 }
