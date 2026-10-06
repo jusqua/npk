@@ -10,6 +10,11 @@
 
 namespace npk {
 
+graph::graph() {
+    minimap_enabled = true;
+    snapping_enabled = ImNodes::GetStyle().Flags & ImNodesStyleFlags_GridSnapping;
+}
+
 auto graph::attach_node(node&& n) -> void {
     ImNodes::SetNodeScreenSpacePos(n.uid(), ImGui::GetMousePos());
 
@@ -136,21 +141,34 @@ auto graph::evaluate(void) -> void {
 }
 
 auto graph::render(void) -> void {
-    constexpr auto toolbar_size = 24;
     auto viewport = ImGui::GetMainViewport();
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar
+                                  | ImGuiWindowFlags_NoTitleBar
                                   | ImGuiWindowFlags_NoResize
                                   | ImGuiWindowFlags_NoMove
                                   | ImGuiWindowFlags_NoCollapse
                                   | ImGuiWindowFlags_NoBringToFrontOnFocus
                                   | ImGuiWindowFlags_NoSavedSettings
                                   | ImGuiWindowFlags_NoNavFocus;
+
     ImGui::SetNextWindowPos(viewport->WorkPos);
-    ImGui::SetNextWindowSize({viewport->WorkSize.x, viewport->WorkSize.y - toolbar_size});
+    ImGui::SetNextWindowSize(viewport->WorkSize);
     ImGui::Begin("Main", nullptr, window_flags);
+
+    ImGui::BeginMenuBar();
+    if (ImGui::MenuItem("Evaluate")) evaluate();
+    if (ImGui::BeginMenu("Options")) {
+        ImGui::MenuItem("MiniMap", nullptr, &minimap_enabled);
+        if (ImGui::MenuItem("Grid Snapping", nullptr, &snapping_enabled)) {
+            if (snapping_enabled) {
+                ImNodes::GetStyle().Flags |= ImNodesStyleFlags_GridSnapping;
+            } else {
+                ImNodes::GetStyle().Flags &= ~ImNodesStyleFlags_GridSnapping;
+            }
+        }
+        ImGui::EndMenu();
+    }
+    ImGui::EndMenuBar();
 
     ImNodes::BeginNodeEditor();
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {10, 10});
@@ -175,6 +193,7 @@ auto graph::render(void) -> void {
 
     for (auto& [_, n] : m_nodes) n.render();
     for (auto& [_, ls] : m_links) for (auto& l : ls) l.render();
+    if (minimap_enabled) ImNodes::MiniMap(ImNodesMiniMapLocation_BottomRight);
     ImNodes::EndNodeEditor();
 
     int from, to, uid;
@@ -191,14 +210,6 @@ auto graph::render(void) -> void {
     }
 
     ImGui::End();
-
-    ImGui::SetNextWindowPos({0, viewport->WorkSize.y - toolbar_size});
-    ImGui::SetNextWindowSize({viewport->WorkSize.x, toolbar_size});
-    ImGui::Begin("Toolbar", nullptr, window_flags);
-    if (ImGui::Button("Evaluate", {0, toolbar_size})) evaluate();
-    ImGui::End();
-
-    ImGui::PopStyleVar(3);
 }
 
 } // namespace npk

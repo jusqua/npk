@@ -54,6 +54,7 @@ application::application() {
     ImNodes::PushAttributeFlag(ImNodesAttributeFlags_EnableLinkDetachWithDragClick);
     auto& imgui_io = ImGui::GetIO();
     auto& imnodes_io = ImNodes::GetIO();
+    imgui_io.IniFilename = nullptr;
     imgui_io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     imgui_io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
     imnodes_io.LinkDetachWithModifierClick.Modifier = &imgui_io.KeyCtrl;
@@ -61,10 +62,10 @@ application::application() {
 
     ImGui::StyleColorsDark();
     auto& imgui_style = ImGui::GetStyle();
-    // auto& imnodes_style = ImNodes::GetStyle();
+    auto& imnodes_style = ImNodes::GetStyle();
     imgui_style.ScaleAllSizes(main_scale);
     imgui_style.FontScaleDpi = main_scale;
-    // imnodes_style.Flags |= ImNodesStyleFlags_GridLinesPrimary | ImNodesStyleFlags_GridSnapping;
+    imnodes_style.Flags |= ImNodesStyleFlags_GridLinesPrimary | ImNodesStyleFlags_GridSnapping;
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(nullptr);

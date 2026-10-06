@@ -11,6 +11,9 @@ namespace npk {
 
 class graph {
 private:
+    bool minimap_enabled;
+    bool snapping_enabled;
+
     std::unordered_map<int, std::list<link>> m_links;
     std::unordered_map<int, bool> m_marked;
     std::unordered_map<int, node> m_nodes;
@@ -27,6 +30,8 @@ private:
     auto evaluate(void) -> void;
 
 public:
+    graph();
+
     auto render(void) -> void;
 };
 
