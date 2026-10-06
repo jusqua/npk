@@ -193,7 +193,7 @@ auto graph::render(void) -> void {
 
     for (auto& [_, n] : m_nodes) n.render();
     for (auto& [_, ls] : m_links) for (auto& l : ls) l.render();
-    if (minimap_enabled) ImNodes::MiniMap(ImNodesMiniMapLocation_BottomRight);
+    if (minimap_enabled) ImNodes::MiniMap(0.2f, ImNodesMiniMapLocation_BottomRight);
     ImNodes::EndNodeEditor();
 
     int from, to, uid;
