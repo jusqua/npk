@@ -1,6 +1,7 @@
 #pragma once
 
-#include <memory>
+#include <list>
+#include <stack>
 #include <unordered_map>
 
 #include "node.hpp"
@@ -8,20 +9,24 @@
 
 namespace npk {
 
-struct graph {
-    std::unordered_map<int, std::vector<std::shared_ptr<node>>> neighbors;
-    std::unordered_map<int, std::shared_ptr<node>> nodes;
-    std::unordered_map<int, std::shared_ptr<link>> links;
+class graph {
+private:
+    std::unordered_map<int, std::list<link>> m_links;
+    std::unordered_map<int, bool> m_marked;
+    std::unordered_map<int, node> m_nodes;
 
-    auto attach_node(std::shared_ptr<node>&& n);
-    auto detach_node(int uid);
-    auto create_link(int from, int to);
-    auto delete_link(int uid);
+    auto attach_node(node&& n) -> void;
+    auto detach_node(int uid) -> void;
+    auto create_link(int from, int to) -> void;
+    auto delete_link(int uid) -> void;
 
-    auto visit(std::stack<int>& stack, std::shared_ptr<node>& n) -> void;
+    auto find_node_from_attribute(int uid) -> node*;
+
+    auto visit(std::stack<int>& stack, node& n) -> void;
     auto traverse(std::stack<int>& stack) -> void;
     auto evaluate(void) -> void;
 
+public:
     auto render(void) -> void;
 };
 
