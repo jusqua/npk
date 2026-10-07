@@ -1,20 +1,31 @@
 cmake_minimum_required(VERSION 3.11)
-project(npk LANGUAGES CXX)
+project(npk LANGUAGES CXX C)
 
 include(FetchContent)
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 
-set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+
+if (NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Debug)
+endif()
+
+if (NOT CMAKE_EXPORT_COMPILE_COMMANDS)
+  set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+endif()
+
 if(NOT PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
   file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/.gitignore" CONTENT "*\n")
 endif()
+
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 
 find_package(OpenGL REQUIRED)
 find_package(AdaptiveCpp REQUIRED CONFIG)
 
 # Dependency for libpng
-set(ZLIB_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(ZLIB_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+set(ZLIB_BUILD_SHARED ${BUILD_SHARED_LIBS} CACHE BOOL "" FORCE)
+set(ZLIB_INSTALL ${BUILD_SHARED_LIBS} CACHE BOOL "" FORCE)
 set(ZLIB_COMMIT da607da739fa6047df13e66a2af6b8bec7c2a498) # 1.3.2
 FetchContent_Declare(
   zlib
@@ -22,6 +33,7 @@ FetchContent_Declare(
   DOWNLOAD_EXTRACT_TIMESTAMP ON
 )
 FetchContent_MakeAvailable(zlib)
+add_library(ZLIB::ZLIB ALIAS zlibstatic)
 set(ZLIB_ROOT "${zlib_SOURCE_DIR}" CACHE INTERNAL "")
 set(ZLIB_LIBRARY ZLIB::ZLIB CACHE INTERNAL "" FORCE)
 set(ZLIB_INCLUDE_DIR "${zlib_SOURCE_DIR};${zlib_BINARY_DIR}" CACHE INTERNAL "" FORCE)
@@ -50,6 +62,8 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(glfw)
 
 # PNG image loader
+set(PNG_SHARED ${BUILD_SHARED_LIBS} CACHE BOOL "" FORCE)
+set(SKIP_INSTALL_ALL ON CACHE BOOL "" FORCE)
 set(LIBPNG_COMMIT 4eeb825ab26605ed34cd74495d4cce920939fe9f)
 FetchContent_Declare(
   libpng
