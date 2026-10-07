@@ -2,6 +2,7 @@
 
 #include <any>
 #include <functional>
+#include <string>
 #include <list>
 #include <span>
 #include <map>
@@ -58,4 +59,3 @@ auto node_module_map(void) -> std::map<std::string, std::list<npk::node_module>>
 auto node_module_init(void) -> void;
 
 } // namespace npk
-

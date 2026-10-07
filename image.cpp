@@ -1,7 +1,7 @@
 #include "image.hpp"
 
 #include <png.h>
-#include <GL/gl.h>
+#include <GLFW/glfw3.h>
 
 #include <csetjmp>
 #include <cstdint>
@@ -206,8 +206,6 @@ auto image::upload(void) -> void {
 
     glTexParameteri(texture_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(texture_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(texture_id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(texture_id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);

@@ -6,7 +6,6 @@
 #include <imgui_impl_opengl3.h>
 #include <imnodes.h>
 #include <nfd.hpp>
-#include <GL/gl.h>
 #include <GLFW/glfw3.h>
 
 #include <iostream>
