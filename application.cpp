@@ -50,7 +50,6 @@ application::application() {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImNodes::CreateContext();
-    ImNodes::PushAttributeFlag(ImNodesAttributeFlags_EnableLinkDetachWithDragClick);
     auto& imgui_io = ImGui::GetIO();
     auto& imnodes_io = ImNodes::GetIO();
     imgui_io.IniFilename = nullptr;
@@ -82,7 +81,6 @@ application::~application() {
     glfwTerminate();
     NFD::Quit();
 }
-
 
 auto application::render(std::function<void(void)>&& func) -> void {
     while (!glfwWindowShouldClose(window)) {

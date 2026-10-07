@@ -171,6 +171,7 @@ auto graph::render(void) -> void {
     ImGui::EndMenuBar();
 
     ImNodes::BeginNodeEditor();
+    ImNodes::PushAttributeFlag(ImNodesAttributeFlags_EnableLinkDetachWithDragClick);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {10, 10});
     if (ImGui::BeginPopupContextWindow("Add Node Menu")) {
         for (auto& category : std::views::keys(node_module_map())) {
@@ -194,6 +195,7 @@ auto graph::render(void) -> void {
     for (auto& [_, n] : m_nodes) n.render();
     for (auto& [_, ls] : m_links) for (auto& l : ls) l.render();
     if (minimap_enabled) ImNodes::MiniMap(0.2f, ImNodesMiniMapLocation_BottomRight);
+    ImNodes::PopAttributeFlag();
     ImNodes::EndNodeEditor();
 
     int from, to, uid;
