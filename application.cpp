@@ -37,7 +37,12 @@ application::application() {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
-    auto main_scale = ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor());
+    auto primary_monitor = glfwGetPrimaryMonitor();
+    auto main_scale = 1.0f;
+    if (primary_monitor != nullptr) {
+        main_scale = ImGui_ImplGlfw_GetContentScaleForMonitor(primary_monitor);
+    }
+
     window = glfwCreateWindow((int)(1280 * main_scale), (int)(800 * main_scale), "NPK", nullptr, nullptr);
     if (window == nullptr) {
         std::println(std::cerr, "NPK Error: Failed to create window");
