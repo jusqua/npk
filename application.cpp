@@ -1,4 +1,5 @@
 #include "application.hpp"
+#include "image.hpp"
 #include "node.hpp"
 
 #include <imgui.h>
@@ -74,6 +75,7 @@ application::application() {
     ImGui_ImplOpenGL3_Init(nullptr);
 
     node_module_init();
+    image_module_init();
 }
 
 application::~application() {

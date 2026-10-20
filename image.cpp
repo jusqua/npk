@@ -1,107 +1,47 @@
-#include "image.hpp"
+#include <csetjmp>
+#include <cstdint>
+#include <cstdio>
+
+#include <functional>
+#include <list>
+#include <filesystem>
+#include <iostream>
+#include <print>
 
 #include <png.h>
 #include <GLFW/glfw3.h>
 
-#include <csetjmp>
-#include <cstdint>
-#include <cstdio>
-#include <iostream>
-#include <print>
+#include "image.hpp"
 
-static auto libpng_error_callback([[maybe_unused]] struct png_struct_def* def, const char* description) -> void {
-    std::println(std::cerr, "LIBPNG Error: {}", description);
-}
+namespace fs = std::filesystem;
 
-static auto libpng_warning_callback([[maybe_unused]] struct png_struct_def* def, const char* description) -> void {
-    std::println(std::cerr, "LIBPNG Error: {}", description);
+
+static std::list<npk::image_module> s_image_module_list;
+static std::map<std::string_view, std::reference_wrapper<npk::image_module>> s_image_module_map;
+
+static auto get_module_from_filepath(const char* filepath) -> npk::image_module& {
+    auto path = fs::path(filepath);
+    if (!path.has_extension()) {
+        std::println(std::cerr, "NPK Error: File \"{}\" has no extension", filepath);
+        abort();
+    }
+
+    auto extension = path.extension().string();
+    if (!s_image_module_map.contains(extension)) {
+        std::println(std::cerr, "NPK Error: No module for extension {} available for file {}", extension, filepath);
+        abort();
+    }
+    return s_image_module_map.at(extension).get();
 }
 
 namespace npk {
 
 auto image::load(const char* filepath) -> void {
-    if (data != nullptr) {
-        std::println(std::cerr, "NPK Error: Image data must be freed before loading");
-        abort();
-    }
+    get_module_from_filepath(filepath).load(this, filepath);
+}
 
-    auto fd = fopen(filepath, "rb");
-    if (!fd) {
-        std::println(std::cerr, "NPK Error: Could not open file descriptor for reading PNG");
-        abort();
-    }
-
-    auto png = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, libpng_error_callback, libpng_warning_callback);
-    if (!png) {
-        fclose(fd);
-        std::println(std::cerr, "NPK Error: Could not create structure to read PNG data");
-        abort();
-    }
-
-    auto info = png_create_info_struct(png);
-    if (!info) {
-        fclose(fd);
-        png_destroy_read_struct(&png, nullptr, nullptr);
-        std::println(std::cerr, "NPK Error: Could not create structure to read PNG info");
-        abort();
-    }
-
-    // Abort if libpng jump back
-    if (setjmp(png_jmpbuf(png))) {
-        fclose(fd);
-        png_destroy_read_struct(&png, &info, nullptr);
-        abort();
-    };
-
-    png_init_io(png, fd);
-    png_read_info(png, info);
-    this->width = png_get_image_width(png, info);
-    this->height = png_get_image_height(png, info);
-    this->color_type = png_get_color_type(png, info);
-    this->bit_depth = png_get_bit_depth(png, info);
-
-    if (this->bit_depth == 16) {
-        png_set_strip_16(png);
-    }
-
-    if (this->color_type == PNG_COLOR_TYPE_PALETTE) {
-        png_set_palette_to_rgb(png);
-    }
-
-    // PNG_COLOR_TYPE_GRAY_ALPHA is always 8 or 16bit depth.
-    if (this->color_type == PNG_COLOR_TYPE_GRAY && this->bit_depth < 8) {
-        png_set_expand_gray_1_2_4_to_8(png);
-    }
-
-    if (png_get_valid(png, info, PNG_INFO_tRNS)) {
-        png_set_tRNS_to_alpha(png);
-    }
-
-    // These color_type don't have an alpha channel then fill it with 0xff.
-    if (this->color_type == PNG_COLOR_TYPE_RGB ||
-        this->color_type == PNG_COLOR_TYPE_GRAY ||
-        this->color_type == PNG_COLOR_TYPE_PALETTE) {
-        png_set_filler(png, 0xFF, PNG_FILLER_AFTER);
-    }
-
-    if (this->color_type == PNG_COLOR_TYPE_GRAY ||
-        this->color_type == PNG_COLOR_TYPE_GRAY_ALPHA) {
-        png_set_gray_to_rgb(png);
-    }
-
-    png_read_update_info(png, info);
-
-    auto row_bytes = png_get_rowbytes(png, info);
-    this->channels = 4;
-    this->size = this->height * row_bytes;
-    this->data = new uint8_t[this->size];
-    for(int y = 0; y < this->height; y++) {
-        png_read_row(png, (this->data + y * this->width * this->channels * this->bit_depth / 8), nullptr);
-    }
-
-    fclose(fd);
-
-    png_destroy_read_struct(&png, &info, NULL);
+auto image::store(const char *filepath) -> void {
+    get_module_from_filepath(filepath).store(this, filepath);
 }
 
 auto image::unload(void) -> void {
@@ -117,63 +57,6 @@ auto image::unload(void) -> void {
     this->size = 0;
     this->texture_id = 0;
     this->data = nullptr;
-}
-
-auto image::store(const char *filepath) -> void {
-    if (data == nullptr) {
-        std::println(std::cerr, "NPK Error: Image data must be loaded before storing");
-        abort();
-    }
-
-    auto fd = fopen(filepath, "wb");
-    if (!fd) {
-        std::println(std::cerr, "NPK Error: Could not open file descriptor for writing");
-        abort();
-    }
-
-    auto png = png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, libpng_error_callback, libpng_warning_callback);
-    if (!png) {
-        fclose(fd);
-        std::println(std::cerr, "NPK Error: Could not create structure to write PNG data");
-        abort();
-    }
-
-    auto info = png_create_info_struct(png);
-    if (!info) {
-        fclose(fd);
-        png_destroy_read_struct(&png, nullptr, nullptr);
-        std::println(std::cerr, "NPK Error: Could not create structure to write PNG info");
-        abort();
-    }
-
-    if (setjmp(png_jmpbuf(png))) {
-        fclose(fd);
-        png_destroy_read_struct(&png, &info, nullptr);
-        abort();
-    }
-
-    png_init_io(png, fd);
-
-    png_set_IHDR(
-        png,
-        info,
-        this->width, this->height,
-        8,
-        PNG_COLOR_TYPE_RGBA,
-        PNG_INTERLACE_NONE,
-        PNG_COMPRESSION_TYPE_DEFAULT,
-        PNG_FILTER_TYPE_DEFAULT
-    );
-    png_write_info(png, info);
-
-    for(int y = 0; y < this->height; y++) {
-        png_write_row(png, (this->data + y * this->width * this->channels * this->bit_depth / 8));
-    }
-    png_write_end(png, NULL);
-
-    fclose(fd);
-
-    png_destroy_write_struct(&png, &info);
 }
 
 auto image::clone(image* img) -> void {
@@ -215,6 +98,195 @@ auto image::upload(void) -> void {
 
 image::~image() {
     unload();
+}
+
+image_module::image_module(std::string_view name, std::vector<std::string_view>&& extensions, std::function<void(image*, const char*)>&& func_load, std::function<void(image*, const char*)>&& func_store)
+    : m_name(name), m_extensions(extensions), m_func_load(func_load), m_func_store(func_store) {}
+auto image_module::name(void) -> std::string_view { return m_name; }
+auto image_module::extensions(void) -> std::span<std::string_view> { return m_extensions; }
+auto image_module::load(image* img, const char* filepath) -> void { m_func_load(img, filepath); }
+auto image_module::store(image* img, const char* filepath) -> void { m_func_store(img, filepath); }
+
+auto image_module_register(image_module&& module) -> void {
+    s_image_module_list.insert(s_image_module_list.end(), std::move(module));
+    auto& current = s_image_module_list.back();
+    for (auto& extension : current.extensions()) {
+        s_image_module_map.insert(std::make_pair(extension, std::ref(current)));
+    }
+}
+
+auto image_module_list(void) -> std::list<npk::image_module>& {
+    return s_image_module_list;
+}
+
+auto image_module_map(void) -> std::map<std::string_view, std::reference_wrapper<npk::image_module>>& {
+    return s_image_module_map;
+}
+
+auto image_module_init(void) -> void {
+    image_module_register({
+        "Portable Network Graphics",
+        {".png"},
+        [](image* img, const char* filepath) {
+            if (img->data != nullptr) {
+                std::println(std::cerr, "NPK Error: Image data must be freed before loading");
+                abort();
+            }
+
+            auto fd = fopen(filepath, "rb");
+            if (!fd) {
+                std::println(std::cerr, "NPK Error: Could not open file descriptor for reading PNG");
+                abort();
+            }
+
+            auto png = png_create_read_struct(
+                PNG_LIBPNG_VER_STRING,
+                nullptr,
+                []([[maybe_unused]] struct png_struct_def* def, const char* description) -> void {
+                    std::println(std::cerr, "LIBPNG Error: {}", description);
+                },
+                []([[maybe_unused]] struct png_struct_def* def, const char* description) -> void {
+                    std::println(std::cerr, "LIBPNG Warning: {}", description);
+                }
+            );
+
+            if (!png) {
+                fclose(fd);
+                std::println(std::cerr, "NPK Error: Could not create structure to read PNG data");
+                abort();
+            }
+
+            auto info = png_create_info_struct(png);
+            if (!info) {
+                fclose(fd);
+                png_destroy_read_struct(&png, nullptr, nullptr);
+                std::println(std::cerr, "NPK Error: Could not create structure to read PNG info");
+                abort();
+            }
+
+            // Abort if libpng jump back
+            if (setjmp(png_jmpbuf(png))) {
+                fclose(fd);
+                png_destroy_read_struct(&png, &info, nullptr);
+                abort();
+            };
+
+            png_init_io(png, fd);
+            png_read_info(png, info);
+            img->width = png_get_image_width(png, info);
+            img->height = png_get_image_height(png, info);
+            img->color_type = png_get_color_type(png, info);
+            img->bit_depth = png_get_bit_depth(png, info);
+
+            if (img->bit_depth == 16) {
+                png_set_strip_16(png);
+            }
+
+            if (img->color_type == PNG_COLOR_TYPE_PALETTE) {
+                png_set_palette_to_rgb(png);
+            }
+
+            // PNG_COLOR_TYPE_GRAY_ALPHA is always 8 or 16bit depth.
+            if (img->color_type == PNG_COLOR_TYPE_GRAY && img->bit_depth < 8) {
+                png_set_expand_gray_1_2_4_to_8(png);
+            }
+
+            if (png_get_valid(png, info, PNG_INFO_tRNS)) {
+                png_set_tRNS_to_alpha(png);
+            }
+
+            // These color_type don't have an alpha channel then fill it with 0xff.
+            if (img->color_type == PNG_COLOR_TYPE_RGB ||
+                img->color_type == PNG_COLOR_TYPE_GRAY ||
+                img->color_type == PNG_COLOR_TYPE_PALETTE) {
+                png_set_filler(png, 0xFF, PNG_FILLER_AFTER);
+            }
+
+            if (img->color_type == PNG_COLOR_TYPE_GRAY ||
+                img->color_type == PNG_COLOR_TYPE_GRAY_ALPHA) {
+                png_set_gray_to_rgb(png);
+            }
+
+            png_read_update_info(png, info);
+
+            auto row_bytes = png_get_rowbytes(png, info);
+            img->channels = 4;
+            img->size = img->height * row_bytes;
+            img->data = new uint8_t[img->size];
+            for(int y = 0; y < img->height; y++) {
+                png_read_row(png, (img->data + y * img->width * img->channels * img->bit_depth / 8), nullptr);
+            }
+
+            fclose(fd);
+
+            png_destroy_read_struct(&png, &info, NULL);
+        },
+        [](image* img, const char* filepath) {
+            if (img->data == nullptr) {
+                std::println(std::cerr, "NPK Error: Image data must be loaded before storing");
+                abort();
+            }
+
+            auto fd = fopen(filepath, "wb");
+            if (!fd) {
+                std::println(std::cerr, "NPK Error: Could not open file descriptor for writing");
+                abort();
+            }
+
+            auto png = png_create_write_struct(
+                PNG_LIBPNG_VER_STRING,
+                nullptr,
+                []([[maybe_unused]] struct png_struct_def* def, const char* description) -> void {
+                    std::println(std::cerr, "LIBPNG Error: {}", description);
+                },
+                []([[maybe_unused]] struct png_struct_def* def, const char* description) -> void {
+                    std::println(std::cerr, "LIBPNG Warning: {}", description);
+                }
+            );
+            if (!png) {
+                fclose(fd);
+                std::println(std::cerr, "NPK Error: Could not create structure to write PNG data");
+                abort();
+            }
+
+            auto info = png_create_info_struct(png);
+            if (!info) {
+                fclose(fd);
+                png_destroy_read_struct(&png, nullptr, nullptr);
+                std::println(std::cerr, "NPK Error: Could not create structure to write PNG info");
+                abort();
+            }
+
+            if (setjmp(png_jmpbuf(png))) {
+                fclose(fd);
+                png_destroy_read_struct(&png, &info, nullptr);
+                abort();
+            }
+
+            png_init_io(png, fd);
+
+            png_set_IHDR(
+                png,
+                info,
+                img->width, img->height,
+                8,
+                PNG_COLOR_TYPE_RGBA,
+                PNG_INTERLACE_NONE,
+                PNG_COMPRESSION_TYPE_DEFAULT,
+                PNG_FILTER_TYPE_DEFAULT
+            );
+            png_write_info(png, info);
+
+            for(int y = 0; y < img->height; y++) {
+                png_write_row(png, (img->data + y * img->width * img->channels * img->bit_depth / 8));
+            }
+            png_write_end(png, NULL);
+
+            fclose(fd);
+
+            png_destroy_write_struct(&png, &info);
+        }
+    });
 }
 
 } // namespace npk

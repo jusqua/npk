@@ -6,6 +6,8 @@
 #include <imgui_internal.h>
 #include <imnodes.h>
 #include <nfd.hpp>
+#include <ranges>
+#include <vector>
 
 #include "processing.hpp"
 #include "color.hpp"
@@ -84,8 +86,25 @@ auto node_module_init(void) -> void {
 
                 ImGui::BeginGroup();
                 if (ImGui::Button("^", {16, 16})) {
+                    auto& modules = image_module_list();
+
                     auto path = NFD::UniquePath();
-                    auto filter = std::vector<nfdfilteritem_t>{{"PNG", "png"}};
+                    auto filter = std::vector<nfdfilteritem_t>{};
+                    filter.reserve(modules.size());
+                    auto extensions = std::vector<std::string>();
+                    extensions.reserve(modules.size());
+
+                    for (auto& module : modules) {
+                        auto extension = module.extensions()
+                            | std::views::transform([](auto&& str) { return str | std::views::drop(1); })
+                            | std::views::join_with(',')
+                            | std::ranges::to<std::string>();
+                        filter.emplace_back(nfdfilteritem_t{
+                            module.name().data(),
+                            extensions.emplace_back(std::move(extension)).c_str()
+                        });
+                    }
+
                     auto result = NFD::OpenDialog(path, filter.data(), filter.size());
                     if (result == NFD_OKAY) {
                         filepath = path.get();
@@ -102,10 +121,10 @@ auto node_module_init(void) -> void {
 
                 ImGui::SameLine();
 
-                ImGui::TextDisabled("%s", filepath.filename().c_str());
+                ImGui::TextDisabled("%ls", filepath.filename().c_str());
                 if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
                     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {6, 6});
-                    ImGui::SetTooltip("%s", filepath.c_str());
+                    ImGui::SetTooltip("%ls", filepath.c_str());
                     ImGui::PopStyleVar();
                 }
                 ImGui::EndGroup();
