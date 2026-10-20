@@ -89,11 +89,15 @@ auto node_module_init(void) -> void {
                     auto& modules = image_module_list();
 
                     auto path = NFD::UniquePath();
-                    auto filter = std::vector<nfdfilteritem_t>{};
-                    filter.reserve(modules.size());
                     auto extensions = std::vector<std::string>();
-                    extensions.reserve(modules.size());
+                    extensions.reserve(modules.size() + 1);
+                    auto filter = std::vector<nfdfilteritem_t>{};
+                    filter.reserve(modules.size() + 1);
 
+                    filter.emplace_back(nfdfilteritem_t{
+                        "Supported image files",
+                        nullptr
+                    });
                     for (auto& module : modules) {
                         auto extension = module.extensions()
                             | std::views::transform([](auto&& str) { return str | std::views::drop(1); })
@@ -104,6 +108,8 @@ auto node_module_init(void) -> void {
                             extensions.emplace_back(std::move(extension)).c_str()
                         });
                     }
+                    extensions.emplace_back(extensions | std::views::join_with(',') | std::ranges::to<std::string>());
+                    filter.front().spec = extensions.back().c_str();
 
                     auto result = NFD::OpenDialog(path, filter.data(), filter.size());
                     if (result == NFD_OKAY) {
