@@ -5,6 +5,11 @@ include(FetchContent)
 
 add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 
+# STL is complaining with AdaptiveCpp runtime iterators,
+# but it's working fine in Release builds.
+# Disabling iterator debug level until it's fixed.
+add_compile_definitions(_ITERATOR_DEBUG_LEVEL=0)
+
 if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug)
 endif()
