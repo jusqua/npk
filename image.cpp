@@ -9,9 +9,11 @@
 #include <print>
 
 #include <png.h>
+#include <tiffio.h>
 #include <GLFW/glfw3.h>
 
 #include "image.hpp"
+#include "tiff.h"
 
 namespace fs = std::filesystem;
 
@@ -37,10 +39,20 @@ static auto get_module_from_filepath(const char* filepath) -> npk::image_module&
 namespace npk {
 
 auto image::load(const char* filepath) -> void {
+    if (data != nullptr) {
+        std::println(std::cerr, "NPK Error: Image data must be freed before loading");
+        abort();
+    }
+
     get_module_from_filepath(filepath).load(this, filepath);
 }
 
 auto image::store(const char *filepath) -> void {
+    if (data == nullptr) {
+        std::println(std::cerr, "NPK Error: Image data must be loaded before storing");
+        abort();
+    }
+
     get_module_from_filepath(filepath).store(this, filepath);
 }
 
@@ -51,7 +63,6 @@ auto image::unload(void) -> void {
         glDeleteTextures(1, &texture_id);
     this->bit_depth = 0;
     this->channels = 0;
-    this->color_type = 0;
     this->height = 0;
     this->width = 0;
     this->size = 0;
@@ -67,7 +78,6 @@ auto image::clone(image* img) -> void {
 
     this->bit_depth = img->bit_depth;
     this->channels = img->channels;
-    this->color_type = img->color_type;
     this->height = img->height;
     this->width = img->width;
     this->size = img->size;
@@ -128,11 +138,6 @@ auto image_module_init(void) -> void {
         "Portable Network Graphics",
         {".png"},
         [](image* img, const char* filepath) {
-            if (img->data != nullptr) {
-                std::println(std::cerr, "NPK Error: Image data must be freed before loading");
-                abort();
-            }
-
             auto fd = fopen(filepath, "rb");
             if (!fd) {
                 std::println(std::cerr, "NPK Error: Could not open file descriptor for reading PNG");
@@ -175,19 +180,19 @@ auto image_module_init(void) -> void {
             png_read_info(png, info);
             img->width = png_get_image_width(png, info);
             img->height = png_get_image_height(png, info);
-            img->color_type = png_get_color_type(png, info);
             img->bit_depth = png_get_bit_depth(png, info);
+            auto color_type = png_get_color_type(png, info);
 
             if (img->bit_depth == 16) {
                 png_set_strip_16(png);
             }
 
-            if (img->color_type == PNG_COLOR_TYPE_PALETTE) {
+            if (color_type == PNG_COLOR_TYPE_PALETTE) {
                 png_set_palette_to_rgb(png);
             }
 
             // PNG_COLOR_TYPE_GRAY_ALPHA is always 8 or 16bit depth.
-            if (img->color_type == PNG_COLOR_TYPE_GRAY && img->bit_depth < 8) {
+            if (color_type == PNG_COLOR_TYPE_GRAY && img->bit_depth < 8) {
                 png_set_expand_gray_1_2_4_to_8(png);
             }
 
@@ -196,14 +201,14 @@ auto image_module_init(void) -> void {
             }
 
             // These color_type don't have an alpha channel then fill it with 0xff.
-            if (img->color_type == PNG_COLOR_TYPE_RGB ||
-                img->color_type == PNG_COLOR_TYPE_GRAY ||
-                img->color_type == PNG_COLOR_TYPE_PALETTE) {
+            if (color_type == PNG_COLOR_TYPE_RGB ||
+                color_type == PNG_COLOR_TYPE_GRAY ||
+                color_type == PNG_COLOR_TYPE_PALETTE) {
                 png_set_filler(png, 0xFF, PNG_FILLER_AFTER);
             }
 
-            if (img->color_type == PNG_COLOR_TYPE_GRAY ||
-                img->color_type == PNG_COLOR_TYPE_GRAY_ALPHA) {
+            if (color_type == PNG_COLOR_TYPE_GRAY ||
+                color_type == PNG_COLOR_TYPE_GRAY_ALPHA) {
                 png_set_gray_to_rgb(png);
             }
 
@@ -222,11 +227,6 @@ auto image_module_init(void) -> void {
             png_destroy_read_struct(&png, &info, NULL);
         },
         [](image* img, const char* filepath) {
-            if (img->data == nullptr) {
-                std::println(std::cerr, "NPK Error: Image data must be loaded before storing");
-                abort();
-            }
-
             auto fd = fopen(filepath, "wb");
             if (!fd) {
                 std::println(std::cerr, "NPK Error: Could not open file descriptor for writing");
@@ -285,6 +285,67 @@ auto image_module_init(void) -> void {
             fclose(fd);
 
             png_destroy_write_struct(&png, &info);
+        }
+    });
+    image_module_register({
+        "Tagged Image File Format",
+        {".tiff", ".tif"},
+        [](image* img, const char* filepath) {
+            auto tif = TIFFOpen(filepath, "r");
+            if (!tif) {
+                std::println(std::cerr, "NPK Error: Could not open file descriptor for reading TIFF");
+                abort();
+            }
+
+            uint32_t width;
+            uint32_t height;
+            uint32_t* raster;
+            uint64_t size;
+            TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &width);
+            TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &height);
+            size = width * height;
+            raster = static_cast<uint32_t*>(_TIFFmalloc(size * sizeof(uint32_t)));
+            if (!TIFFReadRGBAImage(tif, width, height, raster, 0)) {
+                std::println(std::cerr, "NPK Error: Could not open TIFF file");
+                abort();
+            }
+
+            TIFFClose(tif);
+            img->bit_depth = 8;
+            img->channels = 4;
+            img->height = height;
+            img->width = width;
+            img->size = size;
+            img->texture_id = 0;
+            img->data = reinterpret_cast<uint8_t*>(raster);
+        },
+        [](image* img, const char* filepath) {
+            auto tif = TIFFOpen(filepath, "w");
+
+            TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, img->width);
+            TIFFSetField(tif, TIFFTAG_IMAGELENGTH, img->height);
+            TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, img->channels);
+            TIFFSetField(tif, TIFFTAG_BITSPERSAMPLE, img->bit_depth);
+            TIFFSetField(tif, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
+            TIFFSetField(tif, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+            TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
+
+            tsize_t linebytes = img->channels * img->width;
+
+            auto buf = static_cast<uint8_t*>(TIFFScanlineSize(tif)
+                ? _TIFFmalloc(linebytes)
+                : _TIFFmalloc(TIFFScanlineSize(tif)));
+
+            TIFFSetField(tif, TIFFTAG_ROWSPERSTRIP, TIFFDefaultStripSize(tif, linebytes));
+
+            for (auto row = 0; row < img->height; row++) {
+                memcpy(buf, &img->data[(img->height-row-1)*linebytes], linebytes);
+                if (TIFFWriteScanline(tif, buf, row, 0) < 0)
+                    break;
+            }
+
+            if (buf) _TIFFfree(buf);
+            TIFFClose(tif);
         }
     });
 }

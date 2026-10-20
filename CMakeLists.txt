@@ -77,6 +77,20 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(libpng)
 
+# TIFF image loader
+set(tiff-tools OFF)
+set(tiff-tests OFF)
+set(tiff-contrib OFF)
+set(tiff-docs OFF)
+set(LIBTIFF_COMMIT d23249978a7a99ea2e0752a476611914501577de)
+FetchContent_Declare(
+  libtiff
+  GIT_REPOSITORY https://gitlab.com/libtiff/libtiff.git
+  GIT_TAG ${LIBTIFF_COMMIT}
+  DOWNLOAD_EXTRACT_TIMESTAMP ON
+)
+FetchContent_MakeAvailable(libtiff)
+
 set(IMGUI_COMMIT 3bae66c735670619baf51391eba7f3d90a25d125)
 FetchContent_Declare(
   imgui
@@ -116,6 +130,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
   OpenGL::GL
   # Image loaders
   png_static
+  tiffxx
 )
 target_sources(${PROJECT_NAME} PRIVATE
   # Npk
