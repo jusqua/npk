@@ -70,7 +70,7 @@ auto image::unload(void) -> void {
     this->data = nullptr;
 }
 
-auto image::clone(image* img) -> void {
+auto image::similar(image* img) -> void {
     if (data != nullptr) {
         std::println(std::cerr, "NPK Error: Image data must be freed before loading");
         abort();
@@ -83,6 +83,11 @@ auto image::clone(image* img) -> void {
     this->size = img->size;
     this->texture_id = 0;
     this->data = new uint8_t[this->size];
+}
+
+auto image::clone(image* img) -> void {
+    similar(img);
+
     for (auto i = 0; i < img->size; i++) {
         this->data[i] = img->data[i];
     }

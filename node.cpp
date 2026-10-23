@@ -256,6 +256,7 @@ auto node_module_init(void) -> void {
     });
 
     current_category = std::string_view("Processors");
+
     node_module_register({
         "Adjust brightness",
         "Adjust brightness level of a given image by given value",
@@ -719,6 +720,572 @@ auto node_module_init(void) -> void {
                 img.unload();
                 img.clone(inimg);
                 binarization_2d(&img, *inval);
+                outimg_attr.set(&img);
+            };
+
+            return node(
+                module->name(),
+                module->description(),
+                module->category(),
+                intrinsic(std::move(img), {std::move(inimg_attr), std::move(inval_attr), std::move(outimg_attr)}),
+                attributes,
+                render,
+                evaluate
+            );
+        }
+    });
+
+    node_module_register({
+        "Minimum",
+        "Outputs the minimum value between two images",
+        current_category,
+        [](node_module* module) -> node {
+            using intrinsic = std::tuple<npk::image, std::array<npk::attribute, 3>>;
+            auto img = image();
+            auto in1img_attr = attribute("Image");
+            auto in2img_attr = attribute("Image");
+            auto outimg_attr = attribute("Image");
+
+            auto attributes = [](node* self) -> std::span<attribute> {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                return std::span(attrs);
+            };
+
+            auto render = [](node* self) -> void {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [in1img_attr, in2img_attr, outimg_attr] = attrs;
+                ImNodes::BeginNode(self->uid());
+
+                ImNodes::BeginNodeTitleBar();
+                ImGui::TextUnformatted(self->name().data());
+                ImNodes::EndNodeTitleBar();
+
+                ImGui::BeginGroup();
+
+                ImNodes::BeginInputAttribute(in1img_attr.uid());
+                ImGui::TextUnformatted(in1img_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImNodes::BeginInputAttribute(in2img_attr.uid());
+                ImGui::TextUnformatted(in2img_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImGui::SameLine();
+
+                ImNodes::BeginOutputAttribute(outimg_attr.uid());
+                ImGui::TextUnformatted(outimg_attr.name().data());
+                ImNodes::EndOutputAttribute();
+
+                ImGui::EndGroup();
+                ImNodes::EndNode();
+            };
+
+            auto evaluate = [](node* self) -> void {
+                auto& [img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [inimg_attr, inval_attr, outimg_attr] = attrs;
+                auto in1img = reinterpret_cast<image*>(inimg_attr.get());
+                auto in2img = reinterpret_cast<image*>(inval_attr.get());
+                if (in1img == nullptr || in1img->data == nullptr || in2img == nullptr || in2img->data == nullptr) return;
+
+                img.unload();
+                img.clone(in2img);
+                min_2d(in1img, &img);
+                outimg_attr.set(&img);
+            };
+
+            return node(
+                module->name(),
+                module->description(),
+                module->category(),
+                intrinsic(std::move(img), {std::move(in1img_attr), std::move(in2img_attr), std::move(outimg_attr)}),
+                attributes,
+                render,
+                evaluate
+            );
+        }
+    });
+
+    node_module_register({
+        "Maximum",
+        "Outputs the maximum value between two images",
+        current_category,
+        [](node_module* module) -> node {
+            using intrinsic = std::tuple<npk::image, std::array<npk::attribute, 3>>;
+            auto img = image();
+            auto in1img_attr = attribute("Image");
+            auto in2img_attr = attribute("Image");
+            auto outimg_attr = attribute("Image");
+
+            auto attributes = [](node* self) -> std::span<attribute> {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                return std::span(attrs);
+            };
+
+            auto render = [](node* self) -> void {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [in1img_attr, in2img_attr, outimg_attr] = attrs;
+                ImNodes::BeginNode(self->uid());
+
+                ImNodes::BeginNodeTitleBar();
+                ImGui::TextUnformatted(self->name().data());
+                ImNodes::EndNodeTitleBar();
+
+                ImGui::BeginGroup();
+
+                ImNodes::BeginInputAttribute(in1img_attr.uid());
+                ImGui::TextUnformatted(in1img_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImNodes::BeginInputAttribute(in2img_attr.uid());
+                ImGui::TextUnformatted(in2img_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImGui::SameLine();
+
+                ImNodes::BeginOutputAttribute(outimg_attr.uid());
+                ImGui::TextUnformatted(outimg_attr.name().data());
+                ImNodes::EndOutputAttribute();
+
+                ImGui::EndGroup();
+                ImNodes::EndNode();
+            };
+
+            auto evaluate = [](node* self) -> void {
+                auto& [img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [inimg_attr, inval_attr, outimg_attr] = attrs;
+                auto in1img = reinterpret_cast<image*>(inimg_attr.get());
+                auto in2img = reinterpret_cast<image*>(inval_attr.get());
+                if (in1img == nullptr || in1img->data == nullptr || in2img == nullptr || in2img->data == nullptr) return;
+
+                img.unload();
+                img.clone(in2img);
+                max_2d(in1img, &img);
+                outimg_attr.set(&img);
+            };
+
+            return node(
+                module->name(),
+                module->description(),
+                module->category(),
+                intrinsic(std::move(img), {std::move(in1img_attr), std::move(in2img_attr), std::move(outimg_attr)}),
+                attributes,
+                render,
+                evaluate
+            );
+        }
+    });
+
+    node_module_register({
+        "Sum",
+        "Outputs the sum between two images",
+        current_category,
+        [](node_module* module) -> node {
+            using intrinsic = std::tuple<npk::image, std::array<npk::attribute, 3>>;
+            auto img = image();
+            auto in1img_attr = attribute("Image");
+            auto in2img_attr = attribute("Image");
+            auto outimg_attr = attribute("Image");
+
+            auto attributes = [](node* self) -> std::span<attribute> {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                return std::span(attrs);
+            };
+
+            auto render = [](node* self) -> void {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [in1img_attr, in2img_attr, outimg_attr] = attrs;
+                ImNodes::BeginNode(self->uid());
+
+                ImNodes::BeginNodeTitleBar();
+                ImGui::TextUnformatted(self->name().data());
+                ImNodes::EndNodeTitleBar();
+
+                ImGui::BeginGroup();
+
+                ImNodes::BeginInputAttribute(in1img_attr.uid());
+                ImGui::TextUnformatted(in1img_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImNodes::BeginInputAttribute(in2img_attr.uid());
+                ImGui::TextUnformatted(in2img_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImGui::SameLine();
+
+                ImNodes::BeginOutputAttribute(outimg_attr.uid());
+                ImGui::TextUnformatted(outimg_attr.name().data());
+                ImNodes::EndOutputAttribute();
+
+                ImGui::EndGroup();
+                ImNodes::EndNode();
+            };
+
+            auto evaluate = [](node* self) -> void {
+                auto& [img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [inimg_attr, inval_attr, outimg_attr] = attrs;
+                auto in1img = reinterpret_cast<image*>(inimg_attr.get());
+                auto in2img = reinterpret_cast<image*>(inval_attr.get());
+                if (in1img == nullptr || in1img->data == nullptr || in2img == nullptr || in2img->data == nullptr) return;
+
+                img.unload();
+                img.clone(in2img);
+                sum_2d(in1img, &img);
+                outimg_attr.set(&img);
+            };
+
+            return node(
+                module->name(),
+                module->description(),
+                module->category(),
+                intrinsic(std::move(img), {std::move(in1img_attr), std::move(in2img_attr), std::move(outimg_attr)}),
+                attributes,
+                render,
+                evaluate
+            );
+        }
+    });
+
+    node_module_register({
+        "Difference",
+        "Outputs the difference between two images",
+        current_category,
+        [](node_module* module) -> node {
+            using intrinsic = std::tuple<npk::image, std::array<npk::attribute, 3>>;
+            auto img = image();
+            auto in1img_attr = attribute("Image");
+            auto in2img_attr = attribute("Image");
+            auto outimg_attr = attribute("Image");
+
+            auto attributes = [](node* self) -> std::span<attribute> {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                return std::span(attrs);
+            };
+
+            auto render = [](node* self) -> void {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [in1img_attr, in2img_attr, outimg_attr] = attrs;
+                ImNodes::BeginNode(self->uid());
+
+                ImNodes::BeginNodeTitleBar();
+                ImGui::TextUnformatted(self->name().data());
+                ImNodes::EndNodeTitleBar();
+
+                ImGui::BeginGroup();
+
+                ImNodes::BeginInputAttribute(in1img_attr.uid());
+                ImGui::TextUnformatted(in1img_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImNodes::BeginInputAttribute(in2img_attr.uid());
+                ImGui::TextUnformatted(in2img_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImGui::SameLine();
+
+                ImNodes::BeginOutputAttribute(outimg_attr.uid());
+                ImGui::TextUnformatted(outimg_attr.name().data());
+                ImNodes::EndOutputAttribute();
+
+                ImGui::EndGroup();
+                ImNodes::EndNode();
+            };
+
+            auto evaluate = [](node* self) -> void {
+                auto& [img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [inimg_attr, inval_attr, outimg_attr] = attrs;
+                auto in1img = reinterpret_cast<image*>(inimg_attr.get());
+                auto in2img = reinterpret_cast<image*>(inval_attr.get());
+                if (in1img == nullptr || in1img->data == nullptr || in2img == nullptr || in2img->data == nullptr) return;
+
+                img.unload();
+                img.clone(in2img);
+                sub_2d(in1img, &img);
+                outimg_attr.set(&img);
+            };
+
+            return node(
+                module->name(),
+                module->description(),
+                module->category(),
+                intrinsic(std::move(img), {std::move(in1img_attr), std::move(in2img_attr), std::move(outimg_attr)}),
+                attributes,
+                render,
+                evaluate
+            );
+        }
+    });
+
+    node_module_register({
+        "Product",
+        "Outputs the product between two images",
+        current_category,
+        [](node_module* module) -> node {
+            using intrinsic = std::tuple<npk::image, std::array<npk::attribute, 3>>;
+            auto img = image();
+            auto in1img_attr = attribute("Image");
+            auto in2img_attr = attribute("Image");
+            auto outimg_attr = attribute("Image");
+
+            auto attributes = [](node* self) -> std::span<attribute> {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                return std::span(attrs);
+            };
+
+            auto render = [](node* self) -> void {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [in1img_attr, in2img_attr, outimg_attr] = attrs;
+                ImNodes::BeginNode(self->uid());
+
+                ImNodes::BeginNodeTitleBar();
+                ImGui::TextUnformatted(self->name().data());
+                ImNodes::EndNodeTitleBar();
+
+                ImGui::BeginGroup();
+
+                ImNodes::BeginInputAttribute(in1img_attr.uid());
+                ImGui::TextUnformatted(in1img_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImNodes::BeginInputAttribute(in2img_attr.uid());
+                ImGui::TextUnformatted(in2img_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImGui::SameLine();
+
+                ImNodes::BeginOutputAttribute(outimg_attr.uid());
+                ImGui::TextUnformatted(outimg_attr.name().data());
+                ImNodes::EndOutputAttribute();
+
+                ImGui::EndGroup();
+                ImNodes::EndNode();
+            };
+
+            auto evaluate = [](node* self) -> void {
+                auto& [img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [inimg_attr, inval_attr, outimg_attr] = attrs;
+                auto in1img = reinterpret_cast<image*>(inimg_attr.get());
+                auto in2img = reinterpret_cast<image*>(inval_attr.get());
+                if (in1img == nullptr || in1img->data == nullptr || in2img == nullptr || in2img->data == nullptr) return;
+
+                img.unload();
+                img.clone(in2img);
+                mul_2d(in1img, &img);
+                outimg_attr.set(&img);
+            };
+
+            return node(
+                module->name(),
+                module->description(),
+                module->category(),
+                intrinsic(std::move(img), {std::move(in1img_attr), std::move(in2img_attr), std::move(outimg_attr)}),
+                attributes,
+                render,
+                evaluate
+            );
+        }
+    });
+
+    node_module_register({
+        "Gaussian blur",
+        "Smooth image based on a space deviation",
+        current_category,
+        [](node_module* module) -> node {
+            using intrinsic = std::tuple<npk::image, std::array<npk::attribute, 3>>;
+            auto img = image();
+            auto inimg_attr = attribute("Image");
+            auto inval_attr = attribute("Space Deviation");
+            auto outimg_attr = attribute("Image");
+
+            auto attributes = [](node* self) -> std::span<attribute> {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                return std::span(attrs);
+            };
+
+            auto render = [](node* self) -> void {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [inimg_attr, inval_attr, outimg_attr] = attrs;
+                ImNodes::BeginNode(self->uid());
+
+                ImNodes::BeginNodeTitleBar();
+                ImGui::TextUnformatted(self->name().data());
+                ImNodes::EndNodeTitleBar();
+
+                ImGui::BeginGroup();
+
+                ImNodes::BeginInputAttribute(inimg_attr.uid());
+                ImGui::TextUnformatted(inimg_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImNodes::BeginInputAttribute(inval_attr.uid());
+                ImGui::TextUnformatted(inval_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImGui::SameLine();
+
+                ImNodes::BeginOutputAttribute(outimg_attr.uid());
+                ImGui::TextUnformatted(outimg_attr.name().data());
+                ImNodes::EndOutputAttribute();
+
+                ImGui::EndGroup();
+                ImNodes::EndNode();
+            };
+
+            auto evaluate = [](node* self) -> void {
+                auto& [img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [inimg_attr, inval_attr, outimg_attr] = attrs;
+                auto inimg = reinterpret_cast<image*>(inimg_attr.get());
+                auto inval = reinterpret_cast<float*>(inval_attr.get());
+                if (inval == nullptr || inimg == nullptr || inimg->data == nullptr) return;
+
+                img.unload();
+                img.similar(inimg);
+                gaussian_2d(inimg, &img, *inval);
+                outimg_attr.set(&img);
+            };
+
+            return node(
+                module->name(),
+                module->description(),
+                module->category(),
+                intrinsic(std::move(img), {std::move(inimg_attr), std::move(inval_attr), std::move(outimg_attr)}),
+                attributes,
+                render,
+                evaluate
+            );
+        }
+    });
+
+    node_module_register({
+        "Bilateral blur",
+        "Smooth image and preserve edges based on gaussian deviation for space and color",
+        current_category,
+        [](node_module* module) -> node {
+            using intrinsic = std::tuple<npk::image, std::array<npk::attribute, 4>>;
+            auto img = image();
+            auto inimg_attr = attribute("Image");
+            auto in1val_attr = attribute("Space Deviation");
+            auto in2val_attr = attribute("Color Deviation");
+            auto outimg_attr = attribute("Image");
+
+            auto attributes = [](node* self) -> std::span<attribute> {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                return std::span(attrs);
+            };
+
+            auto render = [](node* self) -> void {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [inimg_attr, in1val_attr, in2val_attr, outimg_attr] = attrs;
+                ImNodes::BeginNode(self->uid());
+
+                ImNodes::BeginNodeTitleBar();
+                ImGui::TextUnformatted(self->name().data());
+                ImNodes::EndNodeTitleBar();
+
+                ImGui::BeginGroup();
+
+                ImNodes::BeginInputAttribute(inimg_attr.uid());
+                ImGui::TextUnformatted(inimg_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImNodes::BeginInputAttribute(in1val_attr.uid());
+                ImGui::TextUnformatted(in1val_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImNodes::BeginInputAttribute(in2val_attr.uid());
+                ImGui::TextUnformatted(in2val_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImGui::SameLine();
+
+                ImNodes::BeginOutputAttribute(outimg_attr.uid());
+                ImGui::TextUnformatted(outimg_attr.name().data());
+                ImNodes::EndOutputAttribute();
+
+                ImGui::EndGroup();
+                ImNodes::EndNode();
+            };
+
+            auto evaluate = [](node* self) -> void {
+                auto& [img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [inimg_attr, in1val_attr, in2val_attr, outimg_attr] = attrs;
+                auto inimg = reinterpret_cast<image*>(inimg_attr.get());
+                auto in1val = reinterpret_cast<float*>(in1val_attr.get());
+                auto in2val = reinterpret_cast<float*>(in2val_attr.get());
+                if (in1val == nullptr || in2val == nullptr || inimg == nullptr || inimg->data == nullptr) return;
+
+                img.unload();
+                img.similar(inimg);
+                bilateral_2d(inimg, &img, *in1val, *in2val);
+                outimg_attr.set(&img);
+            };
+
+            return node(
+                module->name(),
+                module->description(),
+                module->category(),
+                intrinsic(std::move(img), {std::move(inimg_attr), std::move(in1val_attr), std::move(in2val_attr), std::move(outimg_attr)}),
+                attributes,
+                render,
+                evaluate
+            );
+        }
+    });
+
+    node_module_register({
+        "Mean blur",
+        "Smooth image by taking the mean of the neighboring pixels",
+        current_category,
+        [](node_module* module) -> node {
+            using intrinsic = std::tuple<npk::image, std::array<npk::attribute, 3>>;
+            auto img = image();
+            auto inimg_attr = attribute("Image");
+            auto inval_attr = attribute("Radius");
+            auto outimg_attr = attribute("Image");
+
+            auto attributes = [](node* self) -> std::span<attribute> {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                return std::span(attrs);
+            };
+
+            auto render = [](node* self) -> void {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [inimg_attr, inval_attr, outimg_attr] = attrs;
+                ImNodes::BeginNode(self->uid());
+
+                ImNodes::BeginNodeTitleBar();
+                ImGui::TextUnformatted(self->name().data());
+                ImNodes::EndNodeTitleBar();
+
+                ImGui::BeginGroup();
+
+                ImNodes::BeginInputAttribute(inimg_attr.uid());
+                ImGui::TextUnformatted(inimg_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImNodes::BeginInputAttribute(inval_attr.uid());
+                ImGui::TextUnformatted(inval_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImGui::SameLine();
+
+                ImNodes::BeginOutputAttribute(outimg_attr.uid());
+                ImGui::TextUnformatted(outimg_attr.name().data());
+                ImNodes::EndOutputAttribute();
+
+                ImGui::EndGroup();
+                ImNodes::EndNode();
+            };
+
+            auto evaluate = [](node* self) -> void {
+                auto& [img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [inimg_attr, inval_attr, outimg_attr] = attrs;
+                auto inimg = reinterpret_cast<image*>(inimg_attr.get());
+                auto inval = reinterpret_cast<float*>(inval_attr.get());
+                if (inval == nullptr || inimg == nullptr || inimg->data == nullptr) return;
+
+                img.unload();
+                img.similar(inimg);
+                mean_2d(inimg, &img, *inval);
                 outimg_attr.set(&img);
             };
 

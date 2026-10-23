@@ -24,6 +24,7 @@ struct image {
     auto store(const char* filepath) -> void;
 
     auto unload(void) -> void;
+    auto similar(image* img) -> void;
     auto clone(image* img) -> void;
     auto upload(void) -> void;
 };
