@@ -1,6 +1,7 @@
 #include <csetjmp>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 
 #include <functional>
 #include <list>
