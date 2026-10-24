@@ -127,10 +127,10 @@ auto node_module_init(void) -> void {
 
                 ImGui::SameLine();
 
-                ImGui::TextDisabled("%ls", filepath.filename().c_str());
+                ImGui::TextDisabled("%s", filepath.filename().string().c_str());
                 if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
                     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {6, 6});
-                    ImGui::SetTooltip("%ls", filepath.c_str());
+                    ImGui::SetTooltip("%s", filepath.string().c_str());
                     ImGui::PopStyleVar();
                 }
                 ImGui::EndGroup();
