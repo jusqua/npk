@@ -1,5 +1,6 @@
 #include <memory>
 
+#include <sycl/sycl.hpp>
 #include <hok.hpp>
 
 #include "processing.hpp"
@@ -7,30 +8,37 @@
 static auto s_queue = sycl::queue{sycl::gpu_selector_v};
 
 template<typename T>
-struct buffer_delete {
+class buffer_delete {
+private:
+    npk::image* m_img;
+
+public:
+    buffer_delete(npk::image* img) : m_img(img) {}
+
     void operator()(T* ptr) const {
+        if (m_img != nullptr) s_queue.copy(ptr, m_img->data, m_img->size).wait();
+
         sycl::free(ptr, s_queue);
     }
 };
 
-static auto create_buffer(npk::image* img) -> std::unique_ptr<uint8_t, buffer_delete<uint8_t>> {
-    return std::unique_ptr<uint8_t, buffer_delete<uint8_t>>(
-        sycl::malloc_shared<uint8_t>(img->size, s_queue),
-        buffer_delete<uint8_t>()
-    );
+static auto create_buffer(npk::image* img, bool copy_back) -> std::unique_ptr<uint8_t, buffer_delete<uint8_t>> {
+    auto buffer = sycl::malloc_device<uint8_t>(img->size, s_queue);
+    s_queue.copy(img->data, buffer, img->size).wait();
+    return std::unique_ptr<uint8_t, buffer_delete<uint8_t>>(buffer, buffer_delete<uint8_t>(copy_back ? img : nullptr));
 }
 
 template<typename K>
 static auto launch_kernel_2d(npk::image* img, K&& kernel) -> void {
-    auto buffer = create_buffer(img);
-    s_queue.parallel_for(sycl::range{img->width, img->height}, kernel(buffer.get())).wait();
+    auto buffer = create_buffer(img, true);
+    s_queue.parallel_for(sycl::range{img->height, img->width}, kernel(buffer.get())).wait();
 }
 
 template<typename K>
 static auto launch_kernel_2d(npk::image* in, npk::image* out, K&& kernel) -> void {
-    auto in_buffer = create_buffer(in);
-    auto out_buffer = create_buffer(out);
-    s_queue.parallel_for(sycl::range{in->width, in->height}, kernel(in_buffer.get(), out_buffer.get())).wait();
+    auto in_buffer = create_buffer(in, false);
+    auto out_buffer = create_buffer(out, true);
+    s_queue.parallel_for(sycl::range{in->height, in->width}, kernel(in_buffer.get(), out_buffer.get())).wait();
 }
 
 namespace npk {
