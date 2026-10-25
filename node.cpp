@@ -136,7 +136,12 @@ auto node_module_init(void) -> void {
                 ImGui::EndGroup();
 
                 ImNodes::BeginOutputAttribute(attr.uid());
-                ImGui::Image(img.texture_id, ImVec2(256, 256));
+                constexpr auto base = 256;
+                auto width = base;
+                auto height = base;
+                if (img.width > img.height) width = img.width * base / img.height;
+                if (img.height > img.width) height = img.height * base / img.width;
+                ImGui::Image(img.texture_id, ImVec2(width, height));
                 ImNodes::EndOutputAttribute();
 
                 ImNodes::EndNode();
@@ -1325,7 +1330,14 @@ auto node_module_init(void) -> void {
                 ImGui::TextUnformatted(self->name().data());
                 ImNodes::EndNodeTitleBar();
 
-                ImGui::Image(img != nullptr ? img->texture_id : 0, ImVec2(256, 256));
+                constexpr auto base = 256;
+                auto width = base;
+                auto height = base;
+                if (img) {
+                    if (img->width > img->height) width = img->width * base / img->height;
+                    if (img->height > img->width) height = img->height * base / img->width;
+                }
+                ImGui::Image(img ? img->texture_id : 0, ImVec2(width, height));
 
                 ImNodes::BeginInputAttribute(attr.uid());
                 ImGui::TextUnformatted(attr.name().data());
