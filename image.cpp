@@ -321,7 +321,7 @@ auto image_module_init(void) -> void {
             img->channels = 4;
             img->height = height;
             img->width = width;
-            img->size = size;
+            img->size = size * img->channels;
             img->texture_id = 0;
             img->data = reinterpret_cast<uint8_t*>(raster);
         },
