@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "color.hpp"
 #include "image.hpp"
 
@@ -20,4 +22,12 @@ auto mul_2d(image* in, image* out) -> void;
 auto gaussian_2d(image* in, image* out, float space_deviation) -> void;
 auto bilateral_2d(image* in, image* out, float space_deviation, float color_deviation) -> void;
 auto mean_2d(image* in, image* out, int radius) -> void;
+auto convolve_2d(image* in, image* out, std::vector<float>& filter, std::vector<int>& shape) -> void;
+auto erode_2d(image* in, image* out, std::vector<uint8_t>& filter, std::vector<int>& shape) -> void;
+auto dilate_2d(image* in, image* out, std::vector<uint8_t>& filter, std::vector<int>& shape) -> void;
+auto open_2d(image* in, image* out, std::vector<uint8_t>& strel, std::vector<int>& shape) -> void;
+auto close_2d(image* in, image* out, std::vector<uint8_t>& strel, std::vector<int>& shape) -> void;
+auto white_tophat_2d(image* in, image* out, std::vector<uint8_t>& strel, std::vector<int>& shape) -> void;
+auto black_tophat_2d(image* in, image* out, std::vector<uint8_t>& strel, std::vector<int>& shape) -> void;
+
 } // namespace npk

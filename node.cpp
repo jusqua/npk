@@ -1,11 +1,14 @@
+#include <algorithm>
 #include <array>
 #include <filesystem>
+#include <functional>
 #include <map>
 
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <imnodes.h>
 #include <nfd.hpp>
+#include <numeric>
 #include <ranges>
 #include <vector>
 
@@ -58,6 +61,7 @@ auto node_module_map(void) -> std::map<std::string, std::list<npk::node_module>>
 
 // TODO: Split node modules into different files
 // TODO: Reduce the node module boilerplate
+// INFO: Yucch! Too much copy pasting...
 auto node_module_init(void) -> void {
     auto current_category = std::string_view("Selectors");
 
@@ -246,6 +250,152 @@ auto node_module_init(void) -> void {
             auto evaluate = [](node* self) -> void {
                 auto& [clr, attr] = std::any_cast<intrinsic&>(self->intrinsic());
                 attr.set(&clr);
+            };
+
+            return node(
+                module->name(),
+                module->description(),
+                module->category(),
+                intrinsic(std::move(val), std::move(attr)),
+                attributes,
+                render,
+                evaluate
+            );
+        }
+    });
+
+    node_module_register({
+        "Filter",
+        "Select weights for a convolution filter",
+        current_category,
+        [](node_module* module) -> node {
+            using intrinsic = std::tuple<std::pair<std::vector<float>, std::vector<int>>, npk::attribute>;
+            auto val = std::make_pair(std::vector(9, 1.0f/9), std::vector{3, 3});
+            auto attr = attribute("Value");
+
+            auto attributes = [](node* self) -> std::span<attribute> {
+                auto& [_val, attr] = std::any_cast<intrinsic&>(self->intrinsic());
+                return std::span(&attr, 1);
+            };
+
+            auto render = [](node* self) -> void {
+                auto& [val, attr] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [data, shape] = val;
+                auto id = std::format("node_table_{}", self->uid());
+                auto shape_sum = std::accumulate(shape.begin(), shape.end(), 0);
+
+                ImNodes::BeginNode(self->uid());
+
+                ImNodes::BeginNodeTitleBar();
+                ImGui::TextUnformatted(self->name().data());
+                ImNodes::EndNodeTitleBar();
+
+                ImNodes::BeginOutputAttribute(attr.uid());
+                if (ImGui::BeginTable(id.c_str(), shape[1], 0, {96.f*shape[1], 0})) {
+                    for (auto i = 0; i < data.size(); i++) {
+                        ImGui::TableNextColumn();
+                        ImGui::PushItemWidth(96);
+                        ImGui::PushID(i);
+                        ImGui::InputFloat("", &data[i]);
+                        ImGui::PopID();
+                        ImGui::PopItemWidth();
+                    }
+                    ImGui::EndTable();
+                    ImGui::BeginGroup();
+                    ImGui::PushItemWidth(96*3);
+                    for (auto i = 0; i < shape.size(); i++) {
+                        ImGui::PushID(i);
+                        ImGui::SliderInt(std::format("D{}", i).c_str(), &shape[i], 3, 48);
+                        ImGui::PopID();
+                    }
+                    ImGui::PopItemWidth();
+                    ImGui::EndGroup();
+                }
+                ImNodes::EndOutputAttribute();
+                ImNodes::EndNode();
+
+                if (std::accumulate(shape.begin(), shape.end(), 0) != shape_sum) {
+                    data.resize(std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>()));
+                    std::fill(data.begin(), data.end(), 1.0f/data.size());
+                }
+            };
+
+            auto evaluate = [](node* self) -> void {
+                auto& [val, attr] = std::any_cast<intrinsic&>(self->intrinsic());
+                attr.set(&val);
+            };
+
+            return node(
+                module->name(),
+                module->description(),
+                module->category(),
+                intrinsic(std::move(val), std::move(attr)),
+                attributes,
+                render,
+                evaluate
+            );
+        }
+    });
+
+    node_module_register({
+        "Strel",
+        "Select elements for a morphological operation",
+        current_category,
+        [](node_module* module) -> node {
+            using intrinsic = std::tuple<std::pair<std::vector<uint8_t>, std::vector<int>>, npk::attribute>;
+            auto val = std::make_pair(std::vector<uint8_t>(9, 1), std::vector{3, 3});
+            auto attr = attribute("Value");
+
+            auto attributes = [](node* self) -> std::span<attribute> {
+                auto& [_val, attr] = std::any_cast<intrinsic&>(self->intrinsic());
+                return std::span(&attr, 1);
+            };
+
+            auto render = [](node* self) -> void {
+                auto& [val, attr] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [data, shape] = val;
+                auto id = std::format("node_table_{}", self->uid());
+                auto shape_sum = std::accumulate(shape.begin(), shape.end(), 0);
+
+                ImNodes::BeginNode(self->uid());
+
+                ImNodes::BeginNodeTitleBar();
+                ImGui::TextUnformatted(self->name().data());
+                ImNodes::EndNodeTitleBar();
+
+                ImNodes::BeginOutputAttribute(attr.uid());
+                if (ImGui::BeginTable(id.c_str(), shape[1], 0, {24.f*shape[1], 0})) {
+                    for (auto i = 0; i < data.size(); i++) {
+                        ImGui::TableNextColumn();
+                        ImGui::PushItemWidth(24);
+                        ImGui::PushID(i);
+                        ImGui::Checkbox("", reinterpret_cast<bool*>(&data[i]));
+                        ImGui::PopID();
+                        ImGui::PopItemWidth();
+                    }
+                    ImGui::EndTable();
+                    ImGui::BeginGroup();
+                    ImGui::PushItemWidth(24*3);
+                    for (auto i = 0; i < shape.size(); i++) {
+                        ImGui::PushID(i);
+                        ImGui::SliderInt(std::format("D{}", i).c_str(), &shape[i], 3, 48);
+                        ImGui::PopID();
+                    }
+                    ImGui::PopItemWidth();
+                    ImGui::EndGroup();
+                }
+                ImNodes::EndOutputAttribute();
+                ImNodes::EndNode();
+
+                if (std::accumulate(shape.begin(), shape.end(), 0) != shape_sum) {
+                    data.resize(std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>()));
+                    std::fill(data.begin(), data.end(), 1);
+                }
+            };
+
+            auto evaluate = [](node* self) -> void {
+                auto& [val, attr] = std::any_cast<intrinsic&>(self->intrinsic());
+                attr.set(&val);
             };
 
             return node(
@@ -1291,6 +1441,512 @@ auto node_module_init(void) -> void {
                 img.unload();
                 img.similar(inimg);
                 mean_2d(inimg, &img, *inval);
+                outimg_attr.set(&img);
+            };
+
+            return node(
+                module->name(),
+                module->description(),
+                module->category(),
+                intrinsic(std::move(img), {std::move(inimg_attr), std::move(inval_attr), std::move(outimg_attr)}),
+                attributes,
+                render,
+                evaluate
+            );
+        }
+    });
+
+    node_module_register({
+        "Convolution",
+        "Apply a filter to the pixel based on neighboring pixels",
+        current_category,
+        [](node_module* module) -> node {
+            using intrinsic = std::tuple<npk::image, std::array<npk::attribute, 3>>;
+            auto img = image();
+            auto inimg_attr = attribute("Image");
+            auto inval_attr = attribute("Filter");
+            auto outimg_attr = attribute("Image");
+
+            auto attributes = [](node* self) -> std::span<attribute> {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                return std::span(attrs);
+            };
+
+            auto render = [](node* self) -> void {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [inimg_attr, inval_attr, outimg_attr] = attrs;
+                ImNodes::BeginNode(self->uid());
+
+                ImNodes::BeginNodeTitleBar();
+                ImGui::TextUnformatted(self->name().data());
+                ImNodes::EndNodeTitleBar();
+
+                ImGui::BeginGroup();
+
+                ImNodes::BeginInputAttribute(inimg_attr.uid());
+                ImGui::TextUnformatted(inimg_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImNodes::BeginInputAttribute(inval_attr.uid());
+                ImGui::TextUnformatted(inval_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImGui::SameLine();
+
+                ImNodes::BeginOutputAttribute(outimg_attr.uid());
+                ImGui::TextUnformatted(outimg_attr.name().data());
+                ImNodes::EndOutputAttribute();
+
+                ImGui::EndGroup();
+                ImNodes::EndNode();
+            };
+
+            auto evaluate = [](node* self) -> void {
+                auto& [img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [inimg_attr, inval_attr, outimg_attr] = attrs;
+                auto inimg = reinterpret_cast<image*>(inimg_attr.get());
+                auto inval = reinterpret_cast<std::pair<std::vector<float>, std::vector<int>>*>(inval_attr.get());
+                if (inval == nullptr || inimg == nullptr || inimg->data == nullptr) return;
+
+                auto& [data, shape] = *inval;
+
+                img.unload();
+                img.similar(inimg);
+                convolve_2d(inimg, &img, data, shape);
+                outimg_attr.set(&img);
+            };
+
+            return node(
+                module->name(),
+                module->description(),
+                module->category(),
+                intrinsic(std::move(img), {std::move(inimg_attr), std::move(inval_attr), std::move(outimg_attr)}),
+                attributes,
+                render,
+                evaluate
+            );
+        }
+    });
+
+    node_module_register({
+        "Erosion",
+        "Apply a erosion to the pixel based on neighboring pixels",
+        current_category,
+        [](node_module* module) -> node {
+            using intrinsic = std::tuple<npk::image, std::array<npk::attribute, 3>>;
+            auto img = image();
+            auto inimg_attr = attribute("Image");
+            auto inval_attr = attribute("Strel");
+            auto outimg_attr = attribute("Image");
+
+            auto attributes = [](node* self) -> std::span<attribute> {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                return std::span(attrs);
+            };
+
+            auto render = [](node* self) -> void {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [inimg_attr, inval_attr, outimg_attr] = attrs;
+                ImNodes::BeginNode(self->uid());
+
+                ImNodes::BeginNodeTitleBar();
+                ImGui::TextUnformatted(self->name().data());
+                ImNodes::EndNodeTitleBar();
+
+                ImGui::BeginGroup();
+
+                ImNodes::BeginInputAttribute(inimg_attr.uid());
+                ImGui::TextUnformatted(inimg_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImNodes::BeginInputAttribute(inval_attr.uid());
+                ImGui::TextUnformatted(inval_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImGui::SameLine();
+
+                ImNodes::BeginOutputAttribute(outimg_attr.uid());
+                ImGui::TextUnformatted(outimg_attr.name().data());
+                ImNodes::EndOutputAttribute();
+
+                ImGui::EndGroup();
+                ImNodes::EndNode();
+            };
+
+            auto evaluate = [](node* self) -> void {
+                auto& [img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [inimg_attr, inval_attr, outimg_attr] = attrs;
+                auto inimg = reinterpret_cast<image*>(inimg_attr.get());
+                auto inval = reinterpret_cast<std::pair<std::vector<uint8_t>, std::vector<int>>*>(inval_attr.get());
+                if (inval == nullptr || inimg == nullptr || inimg->data == nullptr) return;
+
+                auto& [data, shape] = *inval;
+
+                img.unload();
+                img.similar(inimg);
+                erode_2d(inimg, &img, data, shape);
+                outimg_attr.set(&img);
+            };
+
+            return node(
+                module->name(),
+                module->description(),
+                module->category(),
+                intrinsic(std::move(img), {std::move(inimg_attr), std::move(inval_attr), std::move(outimg_attr)}),
+                attributes,
+                render,
+                evaluate
+            );
+        }
+    });
+
+    node_module_register({
+        "Dilation",
+        "Apply a dilation to the pixel based on neighboring pixels",
+        current_category,
+        [](node_module* module) -> node {
+            using intrinsic = std::tuple<npk::image, std::array<npk::attribute, 3>>;
+            auto img = image();
+            auto inimg_attr = attribute("Image");
+            auto inval_attr = attribute("Strel");
+            auto outimg_attr = attribute("Image");
+
+            auto attributes = [](node* self) -> std::span<attribute> {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                return std::span(attrs);
+            };
+
+            auto render = [](node* self) -> void {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [inimg_attr, inval_attr, outimg_attr] = attrs;
+                ImNodes::BeginNode(self->uid());
+
+                ImNodes::BeginNodeTitleBar();
+                ImGui::TextUnformatted(self->name().data());
+                ImNodes::EndNodeTitleBar();
+
+                ImGui::BeginGroup();
+
+                ImNodes::BeginInputAttribute(inimg_attr.uid());
+                ImGui::TextUnformatted(inimg_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImNodes::BeginInputAttribute(inval_attr.uid());
+                ImGui::TextUnformatted(inval_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImGui::SameLine();
+
+                ImNodes::BeginOutputAttribute(outimg_attr.uid());
+                ImGui::TextUnformatted(outimg_attr.name().data());
+                ImNodes::EndOutputAttribute();
+
+                ImGui::EndGroup();
+                ImNodes::EndNode();
+            };
+
+            auto evaluate = [](node* self) -> void {
+                auto& [img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [inimg_attr, inval_attr, outimg_attr] = attrs;
+                auto inimg = reinterpret_cast<image*>(inimg_attr.get());
+                auto inval = reinterpret_cast<std::pair<std::vector<uint8_t>, std::vector<int>>*>(inval_attr.get());
+                if (inval == nullptr || inimg == nullptr || inimg->data == nullptr) return;
+
+                auto& [data, shape] = *inval;
+
+                img.unload();
+                img.similar(inimg);
+                dilate_2d(inimg, &img, data, shape);
+                outimg_attr.set(&img);
+            };
+
+            return node(
+                module->name(),
+                module->description(),
+                module->category(),
+                intrinsic(std::move(img), {std::move(inimg_attr), std::move(inval_attr), std::move(outimg_attr)}),
+                attributes,
+                render,
+                evaluate
+            );
+        }
+    });
+
+    node_module_register({
+        "Opening",
+        "Apply a opening to the pixel based on neighboring pixels",
+        current_category,
+        [](node_module* module) -> node {
+            using intrinsic = std::tuple<npk::image, std::array<npk::attribute, 3>>;
+            auto img = image();
+            auto inimg_attr = attribute("Image");
+            auto inval_attr = attribute("Strel");
+            auto outimg_attr = attribute("Image");
+
+            auto attributes = [](node* self) -> std::span<attribute> {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                return std::span(attrs);
+            };
+
+            auto render = [](node* self) -> void {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [inimg_attr, inval_attr, outimg_attr] = attrs;
+                ImNodes::BeginNode(self->uid());
+
+                ImNodes::BeginNodeTitleBar();
+                ImGui::TextUnformatted(self->name().data());
+                ImNodes::EndNodeTitleBar();
+
+                ImGui::BeginGroup();
+
+                ImNodes::BeginInputAttribute(inimg_attr.uid());
+                ImGui::TextUnformatted(inimg_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImNodes::BeginInputAttribute(inval_attr.uid());
+                ImGui::TextUnformatted(inval_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImGui::SameLine();
+
+                ImNodes::BeginOutputAttribute(outimg_attr.uid());
+                ImGui::TextUnformatted(outimg_attr.name().data());
+                ImNodes::EndOutputAttribute();
+
+                ImGui::EndGroup();
+                ImNodes::EndNode();
+            };
+
+            auto evaluate = [](node* self) -> void {
+                auto& [img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [inimg_attr, inval_attr, outimg_attr] = attrs;
+                auto inimg = reinterpret_cast<image*>(inimg_attr.get());
+                auto inval = reinterpret_cast<std::pair<std::vector<uint8_t>, std::vector<int>>*>(inval_attr.get());
+                if (inval == nullptr || inimg == nullptr || inimg->data == nullptr) return;
+
+                auto& [data, shape] = *inval;
+
+                img.unload();
+                img.similar(inimg);
+                open_2d(inimg, &img, data, shape);
+                outimg_attr.set(&img);
+            };
+
+            return node(
+                module->name(),
+                module->description(),
+                module->category(),
+                intrinsic(std::move(img), {std::move(inimg_attr), std::move(inval_attr), std::move(outimg_attr)}),
+                attributes,
+                render,
+                evaluate
+            );
+        }
+    });
+
+    node_module_register({
+        "Closing",
+        "Apply a closing to the pixel based on neighboring pixels",
+        current_category,
+        [](node_module* module) -> node {
+            using intrinsic = std::tuple<npk::image, std::array<npk::attribute, 3>>;
+            auto img = image();
+            auto inimg_attr = attribute("Image");
+            auto inval_attr = attribute("Strel");
+            auto outimg_attr = attribute("Image");
+
+            auto attributes = [](node* self) -> std::span<attribute> {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                return std::span(attrs);
+            };
+
+            auto render = [](node* self) -> void {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [inimg_attr, inval_attr, outimg_attr] = attrs;
+                ImNodes::BeginNode(self->uid());
+
+                ImNodes::BeginNodeTitleBar();
+                ImGui::TextUnformatted(self->name().data());
+                ImNodes::EndNodeTitleBar();
+
+                ImGui::BeginGroup();
+
+                ImNodes::BeginInputAttribute(inimg_attr.uid());
+                ImGui::TextUnformatted(inimg_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImNodes::BeginInputAttribute(inval_attr.uid());
+                ImGui::TextUnformatted(inval_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImGui::SameLine();
+
+                ImNodes::BeginOutputAttribute(outimg_attr.uid());
+                ImGui::TextUnformatted(outimg_attr.name().data());
+                ImNodes::EndOutputAttribute();
+
+                ImGui::EndGroup();
+                ImNodes::EndNode();
+            };
+
+            auto evaluate = [](node* self) -> void {
+                auto& [img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [inimg_attr, inval_attr, outimg_attr] = attrs;
+                auto inimg = reinterpret_cast<image*>(inimg_attr.get());
+                auto inval = reinterpret_cast<std::pair<std::vector<uint8_t>, std::vector<int>>*>(inval_attr.get());
+                if (inval == nullptr || inimg == nullptr || inimg->data == nullptr) return;
+
+                auto& [data, shape] = *inval;
+
+                img.unload();
+                img.similar(inimg);
+                close_2d(inimg, &img, data, shape);
+                outimg_attr.set(&img);
+            };
+
+            return node(
+                module->name(),
+                module->description(),
+                module->category(),
+                intrinsic(std::move(img), {std::move(inimg_attr), std::move(inval_attr), std::move(outimg_attr)}),
+                attributes,
+                render,
+                evaluate
+            );
+        }
+    });
+
+    // INFO: Not a good description
+    node_module_register({
+        "White Tophat",
+        "Apply a white tophat to the pixel based on neighboring pixels",
+        current_category,
+        [](node_module* module) -> node {
+            using intrinsic = std::tuple<npk::image, std::array<npk::attribute, 3>>;
+            auto img = image();
+            auto inimg_attr = attribute("Image");
+            auto inval_attr = attribute("Strel");
+            auto outimg_attr = attribute("Image");
+
+            auto attributes = [](node* self) -> std::span<attribute> {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                return std::span(attrs);
+            };
+
+            auto render = [](node* self) -> void {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [inimg_attr, inval_attr, outimg_attr] = attrs;
+                ImNodes::BeginNode(self->uid());
+
+                ImNodes::BeginNodeTitleBar();
+                ImGui::TextUnformatted(self->name().data());
+                ImNodes::EndNodeTitleBar();
+
+                ImGui::BeginGroup();
+
+                ImNodes::BeginInputAttribute(inimg_attr.uid());
+                ImGui::TextUnformatted(inimg_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImNodes::BeginInputAttribute(inval_attr.uid());
+                ImGui::TextUnformatted(inval_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImGui::SameLine();
+
+                ImNodes::BeginOutputAttribute(outimg_attr.uid());
+                ImGui::TextUnformatted(outimg_attr.name().data());
+                ImNodes::EndOutputAttribute();
+
+                ImGui::EndGroup();
+                ImNodes::EndNode();
+            };
+
+            auto evaluate = [](node* self) -> void {
+                auto& [img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [inimg_attr, inval_attr, outimg_attr] = attrs;
+                auto inimg = reinterpret_cast<image*>(inimg_attr.get());
+                auto inval = reinterpret_cast<std::pair<std::vector<uint8_t>, std::vector<int>>*>(inval_attr.get());
+                if (inval == nullptr || inimg == nullptr || inimg->data == nullptr) return;
+
+                auto& [data, shape] = *inval;
+
+                img.unload();
+                img.similar(inimg);
+                white_tophat_2d(inimg, &img, data, shape);
+                outimg_attr.set(&img);
+            };
+
+            return node(
+                module->name(),
+                module->description(),
+                module->category(),
+                intrinsic(std::move(img), {std::move(inimg_attr), std::move(inval_attr), std::move(outimg_attr)}),
+                attributes,
+                render,
+                evaluate
+            );
+        }
+    });
+
+    // INFO: Not a good description
+    node_module_register({
+        "Black Tophat",
+        "Apply a black tophat to the pixel based on neighboring pixels",
+        current_category,
+        [](node_module* module) -> node {
+            using intrinsic = std::tuple<npk::image, std::array<npk::attribute, 3>>;
+            auto img = image();
+            auto inimg_attr = attribute("Image");
+            auto inval_attr = attribute("Strel");
+            auto outimg_attr = attribute("Image");
+
+            auto attributes = [](node* self) -> std::span<attribute> {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                return std::span(attrs);
+            };
+
+            auto render = [](node* self) -> void {
+                auto& [_img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [inimg_attr, inval_attr, outimg_attr] = attrs;
+                ImNodes::BeginNode(self->uid());
+
+                ImNodes::BeginNodeTitleBar();
+                ImGui::TextUnformatted(self->name().data());
+                ImNodes::EndNodeTitleBar();
+
+                ImGui::BeginGroup();
+
+                ImNodes::BeginInputAttribute(inimg_attr.uid());
+                ImGui::TextUnformatted(inimg_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImNodes::BeginInputAttribute(inval_attr.uid());
+                ImGui::TextUnformatted(inval_attr.name().data());
+                ImNodes::EndInputAttribute();
+
+                ImGui::SameLine();
+
+                ImNodes::BeginOutputAttribute(outimg_attr.uid());
+                ImGui::TextUnformatted(outimg_attr.name().data());
+                ImNodes::EndOutputAttribute();
+
+                ImGui::EndGroup();
+                ImNodes::EndNode();
+            };
+
+            auto evaluate = [](node* self) -> void {
+                auto& [img, attrs] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [inimg_attr, inval_attr, outimg_attr] = attrs;
+                auto inimg = reinterpret_cast<image*>(inimg_attr.get());
+                auto inval = reinterpret_cast<std::pair<std::vector<uint8_t>, std::vector<int>>*>(inval_attr.get());
+                if (inval == nullptr || inimg == nullptr || inimg->data == nullptr) return;
+
+                auto& [data, shape] = *inval;
+
+                img.unload();
+                img.similar(inimg);
+                black_tophat_2d(inimg, &img, data, shape);
                 outimg_attr.set(&img);
             };
 
