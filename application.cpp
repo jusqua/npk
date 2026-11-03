@@ -52,6 +52,7 @@ application::application() {
 
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
+    glfwSwapBuffers(window);
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
