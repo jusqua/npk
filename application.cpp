@@ -91,7 +91,7 @@ application::~application() {
 
 auto application::render(std::function<void(void)>&& func) -> void {
     while (!glfwWindowShouldClose(window)) {
-        glfwPollEvents();
+        glfwWaitEvents();
         if (glfwGetWindowAttrib(window, GLFW_ICONIFIED) != 0) {
             ImGui_ImplGlfw_Sleep(10);
             continue;
