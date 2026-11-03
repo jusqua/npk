@@ -10,8 +10,8 @@ static auto s_queue = sycl::queue{sycl::gpu_selector_v};
 template<typename T>
 class delete_device {
 private:
-    size_t m_size;
     T* m_data;
+    size_t m_size;
 
 public:
     delete_device() : m_data(nullptr), m_size(0)  {}
