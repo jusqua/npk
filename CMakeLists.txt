@@ -5,11 +5,6 @@ include(FetchContent)
 
 add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 
-# STL is complaining with AdaptiveCpp runtime iterators,
-# but it's working fine in Release builds.
-# Disabling iterator debug level until it's fixed.
-add_compile_definitions(_ITERATOR_DEBUG_LEVEL=0)
-
 if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug)
 endif()
@@ -22,10 +17,30 @@ if(NOT PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
   file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/.gitignore" CONTENT "*\n")
 endif()
 
+set(PREFER_BACKEND "Auto" CACHE STRING "Select backend (Auto, IntelSYCL, AdaptiveCpp)")
+set_property(CACHE PREFER_BACKEND PROPERTY STRINGS "Auto" "IntelSYCL" "AdaptiveCpp")
+
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 
 find_package(OpenGL REQUIRED)
-find_package(AdaptiveCpp REQUIRED CONFIG)
+
+if(PREFER_BACKEND STREQUAL "IntelSYCL")
+    find_package(IntelSYCL CONFIG REQUIRED)
+elseif(PREFER_BACKEND STREQUAL "AdaptiveCpp")
+    find_package(AdaptiveCpp CONFIG REQUIRED)
+else() # Try to find SYCL compilers packages (It can be gone wrong)
+    find_package(IntelSYCL CONFIG QUIET)
+    if(IntelSYCL_FOUND)
+        message(STATUS "Using IntelSYCL")
+    else()
+        find_package(AdaptiveCpp CONFIG QUIET)
+        if (AdaptiveCpp_FOUND)
+            message(STATUS "Using AdaptiveCpp")
+        else()
+            message(FATAL_ERROR "Neither IntelSYCL nor AdaptiveCpp could be found")
+        endif()
+    endif()
+endif()
 
 # Dependency for libpng
 set(ZLIB_BUILD_TESTING OFF CACHE BOOL "" FORCE)
@@ -186,4 +201,4 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   # HOK
   ${hok_SOURCE_DIR}
 )
-add_sycl_to_target(TARGET ${PROJECT_NAME})
+add_sycl_to_target(TARGET ${PROJECT_NAME} SOURCES processing.cpp)
