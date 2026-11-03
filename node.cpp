@@ -264,6 +264,7 @@ auto node_module_init(void) -> void {
         }
     });
 
+    // TODO: Add some presets and 1D option for linear filters
     node_module_register({
         "Filter",
         "Select weights for a convolution filter",
@@ -291,25 +292,25 @@ auto node_module_init(void) -> void {
                 ImNodes::EndNodeTitleBar();
 
                 ImNodes::BeginOutputAttribute(attr.uid());
+                ImGui::BeginGroup();
+                ImGui::PushItemWidth(96*3);
+                for (auto i = 0; i < shape.size(); i++) {
+                    ImGui::PushID(i);
+                    ImGui::SliderInt(std::format("D{}", i).c_str(), &shape[i], 3, 48);
+                    ImGui::PopID();
+                }
+                ImGui::PopItemWidth();
+                ImGui::EndGroup();
                 if (ImGui::BeginTable(id.c_str(), shape[1], 0, {96.f*shape[1], 0})) {
                     for (auto i = 0; i < data.size(); i++) {
                         ImGui::TableNextColumn();
                         ImGui::PushItemWidth(96);
                         ImGui::PushID(i);
-                        ImGui::InputFloat("", &data[i]);
+                        ImGui::InputFloat("", &data[i], 0, 0, "%.6f");
                         ImGui::PopID();
                         ImGui::PopItemWidth();
                     }
                     ImGui::EndTable();
-                    ImGui::BeginGroup();
-                    ImGui::PushItemWidth(96*3);
-                    for (auto i = 0; i < shape.size(); i++) {
-                        ImGui::PushID(i);
-                        ImGui::SliderInt(std::format("D{}", i).c_str(), &shape[i], 3, 48);
-                        ImGui::PopID();
-                    }
-                    ImGui::PopItemWidth();
-                    ImGui::EndGroup();
                 }
                 ImNodes::EndOutputAttribute();
                 ImNodes::EndNode();
@@ -337,6 +338,7 @@ auto node_module_init(void) -> void {
         }
     });
 
+    // TODO: Add some presets and 1D option for linear strels
     node_module_register({
         "Strel",
         "Select elements for a morphological operation",
@@ -364,6 +366,15 @@ auto node_module_init(void) -> void {
                 ImNodes::EndNodeTitleBar();
 
                 ImNodes::BeginOutputAttribute(attr.uid());
+                ImGui::BeginGroup();
+                ImGui::PushItemWidth(24*3);
+                for (auto i = 0; i < shape.size(); i++) {
+                    ImGui::PushID(i);
+                    ImGui::SliderInt(std::format("D{}", i).c_str(), &shape[i], 3, 48);
+                    ImGui::PopID();
+                }
+                ImGui::PopItemWidth();
+                ImGui::EndGroup();
                 if (ImGui::BeginTable(id.c_str(), shape[1], 0, {24.f*shape[1], 0})) {
                     for (auto i = 0; i < data.size(); i++) {
                         ImGui::TableNextColumn();
@@ -374,15 +385,6 @@ auto node_module_init(void) -> void {
                         ImGui::PopItemWidth();
                     }
                     ImGui::EndTable();
-                    ImGui::BeginGroup();
-                    ImGui::PushItemWidth(24*3);
-                    for (auto i = 0; i < shape.size(); i++) {
-                        ImGui::PushID(i);
-                        ImGui::SliderInt(std::format("D{}", i).c_str(), &shape[i], 3, 48);
-                        ImGui::PopID();
-                    }
-                    ImGui::PopItemWidth();
-                    ImGui::EndGroup();
                 }
                 ImNodes::EndOutputAttribute();
                 ImNodes::EndNode();
