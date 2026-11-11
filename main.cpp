@@ -48,7 +48,7 @@ auto setup_style(void) -> void {
 }
 
 int main(int, char**) {
-    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) {
+    if (!SDL_Init(SDL_INIT_VIDEO)) {
         std::println("Error: SDL_Init(): {}", SDL_GetError());
         return 1;
     }
