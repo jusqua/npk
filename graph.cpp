@@ -153,6 +153,7 @@ auto graph::render(void) -> void {
 
     ImGui::SetNextWindowPos(viewport->WorkPos);
     ImGui::SetNextWindowSize(viewport->WorkSize);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
     ImGui::Begin("Main", nullptr, window_flags);
 
     ImGui::BeginMenuBar();
@@ -212,7 +213,7 @@ auto graph::render(void) -> void {
     }
 
     ImGui::End();
+    ImGui::PopStyleVar();
 }
 
 } // namespace npk
-

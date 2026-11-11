@@ -22,8 +22,6 @@ set_property(CACHE PREFER_BACKEND PROPERTY STRINGS "Auto" "IntelSYCL" "AdaptiveC
 
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 
-find_package(OpenGL REQUIRED)
-
 if(PREFER_BACKEND STREQUAL "IntelSYCL")
     find_package(IntelSYCL CONFIG REQUIRED)
 elseif(PREFER_BACKEND STREQUAL "AdaptiveCpp")
@@ -58,29 +56,6 @@ set(ZLIB_ROOT "${zlib_SOURCE_DIR}" CACHE INTERNAL "")
 set(ZLIB_LIBRARY ZLIB::ZLIB CACHE INTERNAL "" FORCE)
 set(ZLIB_INCLUDE_DIR "${zlib_SOURCE_DIR};${zlib_BINARY_DIR}" CACHE INTERNAL "" FORCE)
 
-# File picker
-set(NFD_X11 OFF CACHE BOOL "" FORCE)
-set(NFD_WAYLAND ON CACHE BOOL "" FORCE)
-set(NFD_PORTAL ON CACHE BOOL "" FORCE)
-set(NFD_COMMIT 5381ddbf0b33d3b7b4c5679b0e796d77848a158d) # 1.4.0
-FetchContent_Declare(
-  nfd
-  GIT_REPOSITORY https://github.com/btzy/nativefiledialog-extended
-  GIT_TAG ${NFD_COMMIT}
-  GIT_SHALLOW ON
-  GIT_SUBMODULES_RECURSE ON
-)
-FetchContent_MakeAvailable(nfd)
-
-# Window handler
-set(GLFW_COMMIT d9d6f0f1f967807ffade6598ea9a631ebaf37a56) # 3.5.1
-FetchContent_Declare(
-  glfw
-  URL https://github.com/glfw/glfw/archive/${GLFW_COMMIT}.tar.gz
-  DOWNLOAD_EXTRACT_TIMESTAMP ON
-)
-FetchContent_MakeAvailable(glfw)
-
 # PNG image loader
 set(PNG_SHARED ${BUILD_SHARED_LIBS} CACHE BOOL "" FORCE)
 set(SKIP_INSTALL_ALL ON CACHE BOOL "" FORCE)
@@ -105,6 +80,16 @@ FetchContent_Declare(
   DOWNLOAD_EXTRACT_TIMESTAMP ON
 )
 FetchContent_MakeAvailable(libtiff)
+
+set(SDL_STATIC ON CACHE BOOL "" FORCE)
+set(SDL_COMMIT f00dc919ca35b9756316e86c4777392de442f9b2) # 3.4.20
+FetchContent_Declare(
+  sdl
+  URL https://github.com/libsdl-org/SDL/archive/${SDL_COMMIT}.tar.gz
+  DOWNLOAD_EXTRACT_TIMESTAMP ON
+  EXCLUDE_FROM_ALL
+)
+FetchContent_MakeAvailable(sdl)
 
 set(IMGUI_COMMIT d3b36a875f0f7e7446b99606ca3d6df27b7dad7a)
 FetchContent_Declare(
@@ -137,10 +122,10 @@ add_library(imgui_lib STATIC
     ${imgui_SOURCE_DIR}/imstb_textedit.h
     ${imgui_SOURCE_DIR}/imstb_truetype.h
     # Dear ImGui Backends
-    ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
-    ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.h
-    ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
-    ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.h
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.h
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_sdlrenderer3.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_sdlrenderer3.h
     # Nelarius ImNodes
     ${imnodes_SOURCE_DIR}/imnodes.cpp
     ${imnodes_SOURCE_DIR}/imnodes.h
@@ -155,8 +140,7 @@ target_include_directories(imgui_lib PUBLIC
   ${imnodes_SOURCE_DIR}
 )
 target_link_libraries(imgui_lib PRIVATE
-    glfw
-    OpenGL::GL
+    SDL3::SDL3
 )
 
 set(HOK_COMMIT main)
@@ -174,23 +158,18 @@ target_include_directories(hok_lib INTERFACE ${hok_SOURCE_DIR})
 add_executable(${PROJECT_NAME})
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 26 CXX_STANDARD_REQUIRED ON)
 target_link_libraries(${PROJECT_NAME} PRIVATE
-  # File picker
-  nfd
   # Image loaders
   png_static
   tiffxx
   # Windowing
   imgui_lib
-  glfw
-  OpenGL::GL
+  SDL3::SDL3
   # Processing
   hok_lib
 )
 target_sources(${PROJECT_NAME} PRIVATE
   utils.cpp
   utils.hpp
-  application.cpp
-  application.hpp
   processing.cpp
   processing.hpp
   image.cpp
@@ -205,6 +184,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   link.hpp
   graph.cpp
   graph.hpp
+  main.hpp
   main.cpp
 )
 add_sycl_to_target(TARGET ${PROJECT_NAME} SOURCES processing.cpp)

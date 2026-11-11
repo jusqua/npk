@@ -11,10 +11,11 @@
 
 #include <png.h>
 #include <tiffio.h>
-#include <GLFW/glfw3.h>
+#include <SDL3/SDL.h>
 
+#include "SDL3/SDL_surface.h"
+#include "main.hpp"
 #include "image.hpp"
-#include "tiff.h"
 
 namespace fs = std::filesystem;
 
@@ -60,14 +61,14 @@ auto image::store(const char *filepath) -> void {
 auto image::unload(void) -> void {
     if (this->data != nullptr)
         delete[] this->data;
-    if (this->texture_id != 0)
-        glDeleteTextures(1, &texture_id);
+    if (this->texture != nullptr)
+        SDL_DestroyTexture(reinterpret_cast<SDL_Texture*>(this->texture));
     this->bit_depth = 0;
     this->channels = 0;
     this->height = 0;
     this->width = 0;
     this->size = 0;
-    this->texture_id = 0;
+    this->texture = nullptr;
     this->data = nullptr;
 }
 
@@ -82,7 +83,7 @@ auto image::similar(image* img) -> void {
     this->height = img->height;
     this->width = img->width;
     this->size = img->size;
-    this->texture_id = 0;
+    this->texture = nullptr;
     this->data = new uint8_t[this->size];
 }
 
@@ -94,22 +95,17 @@ auto image::clone(image* img) -> void {
     }
 }
 
-auto image::upload(void) -> void {
-    if (texture_id != 0) {
+auto image::upload() -> void {
+    if (texture != nullptr) {
         std::println(std::cerr, "NPK Error: Texture must be freed before uploading");
         abort();
     }
 
-    glGenTextures(1, &texture_id);
-    glBindTexture(GL_TEXTURE_2D, texture_id);
+    auto surface = SDL_CreateSurfaceFrom(width, height, SDL_PIXELFORMAT_RGBA32, data, channels * width);
+    texture = SDL_CreateTextureFromSurface(get_application_renderer(), surface);
 
-    glTexParameteri(texture_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(texture_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-
-    glBindTexture(GL_TEXTURE_2D, 0);
+    // Prevent pixels from being deleted
+    delete surface;
 }
 
 image::~image() {
@@ -322,7 +318,7 @@ auto image_module_init(void) -> void {
             img->height = height;
             img->width = width;
             img->size = size * img->channels;
-            img->texture_id = 0;
+            img->texture = nullptr;
             img->data = reinterpret_cast<uint8_t*>(raster);
         },
         [](image* img, const char* filepath) {

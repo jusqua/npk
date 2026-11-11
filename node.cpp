@@ -1,23 +1,22 @@
 #include <algorithm>
 #include <array>
-#include <filesystem>
+#include <format>
 #include <functional>
 #include <map>
+#include <numeric>
+#include <ranges>
+#include <vector>
 
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <imnodes.h>
-#include <nfd.hpp>
-#include <numeric>
-#include <ranges>
-#include <vector>
+#include <SDL3/SDL.h>
 
 #include "processing.hpp"
 #include "color.hpp"
 #include "utils.hpp"
 #include "image.hpp"
 #include "node.hpp"
-
 
 static std::map<std::string, std::list<npk::node_module>> s_node_modules;
 
@@ -70,74 +69,59 @@ auto node_module_init(void) -> void {
         "Select an image from system",
         current_category,
         [](node_module* module) -> node {
-            using intrinsic = std::tuple<std::filesystem::path, npk::image, npk::attribute>;
-            auto filepath = std::filesystem::path();
+            using intrinsic = std::tuple<npk::image, npk::attribute>;
             auto img = image();
             auto attr = attribute("Image");
 
             auto attributes = [](node* self) -> std::span<attribute> {
-                auto& [_filepath, _img, attr] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [_img, attr] = std::any_cast<intrinsic&>(self->intrinsic());
                 return std::span(&attr, 1);
             };
 
             auto render = [](node* self) -> void {
-                auto& [filepath, img, attr] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [img, attr] = std::any_cast<intrinsic&>(self->intrinsic());
                 ImNodes::BeginNode(self->uid());
 
                 ImNodes::BeginNodeTitleBar();
                 ImGui::TextUnformatted(self->name().data());
                 ImNodes::EndNodeTitleBar();
 
-                ImGui::BeginGroup();
-                if (ImGui::Button("^", {16, 16})) {
+                if (ImGui::Button("^ Open image file", {0, 16})) {
                     auto& modules = image_module_list();
 
-                    auto path = NFD::UniquePath();
                     auto extensions = std::vector<std::string>();
                     extensions.reserve(modules.size() + 1);
-                    auto filter = std::vector<nfdfilteritem_t>{};
-                    filter.reserve(modules.size() + 1);
+                    auto filters = std::vector<SDL_DialogFileFilter>{};
+                    filters.reserve(modules.size() + 1);
 
-                    filter.emplace_back(nfdfilteritem_t{
-                        "Supported image files",
-                        nullptr
-                    });
+                    filters.emplace_back("Supported image files", nullptr);
                     for (auto& module : modules) {
                         auto extension = module.extensions()
                             | std::views::transform([](auto&& str) { return str | std::views::drop(1); })
-                            | std::views::join_with(',')
+                            | std::views::join_with(';')
                             | std::ranges::to<std::string>();
-                        filter.emplace_back(nfdfilteritem_t{
-                            module.name().data(),
-                            extensions.emplace_back(std::move(extension)).c_str()
-                        });
+                        filters.emplace_back(module.name().data(), extensions.emplace_back(std::move(extension)).c_str());
                     }
-                    extensions.emplace_back(extensions | std::views::join_with(',') | std::ranges::to<std::string>());
-                    filter.front().spec = extensions.back().c_str();
+                    extensions.emplace_back(extensions | std::views::join_with(';') | std::ranges::to<std::string>());
+                    filters.front().pattern = extensions.back().c_str();
 
-                    auto result = NFD::OpenDialog(path, filter.data(), filter.size());
-                    if (result == NFD_OKAY) {
-                        filepath = path.get();
-                        img.unload();
-                        img.load(path.get());
-                        img.upload();
-                    }
-                }
-                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-                    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {6, 6});
-                    ImGui::SetTooltip("Open image file");
-                    ImGui::PopStyleVar();
-                }
+                    SDL_ShowOpenFileDialog(
+                        [](void* userdata, const char* const* filelist, int filter) {
+                            if (!filelist || !*filelist || filter < 0) return;
 
-                ImGui::SameLine();
-
-                ImGui::TextDisabled("%s", filepath.filename().string().c_str());
-                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-                    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {6, 6});
-                    ImGui::SetTooltip("%s", filepath.string().c_str());
-                    ImGui::PopStyleVar();
+                            auto img = reinterpret_cast<image*>(userdata);
+                            img->unload();
+                            img->load(*filelist);
+                            img->upload();
+                        },
+                        &img,
+                        nullptr,
+                        filters.data(),
+                        filters.size(),
+                        nullptr,
+                        false
+                    );
                 }
-                ImGui::EndGroup();
 
                 ImNodes::BeginOutputAttribute(attr.uid());
                 constexpr auto base = 256;
@@ -145,14 +129,14 @@ auto node_module_init(void) -> void {
                 auto height = base;
                 if (img.width > img.height) width = img.width * base / img.height;
                 if (img.height > img.width) height = img.height * base / img.width;
-                ImGui::Image(img.texture_id, ImVec2(width, height));
+                ImGui::Image(img.texture, ImVec2(width, height));
                 ImNodes::EndOutputAttribute();
 
                 ImNodes::EndNode();
             };
 
             auto evaluate = [](node* self) -> void {
-                auto& [_filepath, img, attr] = std::any_cast<intrinsic&>(self->intrinsic());
+                auto& [img, attr] = std::any_cast<intrinsic&>(self->intrinsic());
                 attr.set(&img);
             };
 
@@ -160,7 +144,7 @@ auto node_module_init(void) -> void {
                 module->name(),
                 module->description(),
                 module->category(),
-                intrinsic(std::move(filepath), std::move(img), std::move(attr)),
+                intrinsic(std::move(img), std::move(attr)),
                 std::move(attributes),
                 std::move(render),
                 std::move(evaluate)
@@ -1995,7 +1979,7 @@ auto node_module_init(void) -> void {
                     if (img->width > img->height) width = img->width * base / img->height;
                     if (img->height > img->width) height = img->height * base / img->width;
                 }
-                ImGui::Image(img ? img->texture_id : 0, ImVec2(width, height));
+                ImGui::Image(img ? img->texture : nullptr, ImVec2(width, height));
 
                 ImNodes::BeginInputAttribute(attr.uid());
                 ImGui::TextUnformatted(attr.name().data());
@@ -2006,7 +1990,7 @@ auto node_module_init(void) -> void {
             auto evaluate = [](node* self) -> void {
                 auto& attr = std::any_cast<intrinsic&>(self->intrinsic());
                 auto img = reinterpret_cast<image*>(attr.get());
-                if (img != nullptr && img->data != nullptr && img->texture_id == 0) img->upload();
+                if (img != nullptr && img->data != nullptr && img->texture == nullptr) img->upload();
             };
 
             return node(

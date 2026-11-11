@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+
 #include <functional>
 #include <list>
 #include <string_view>
@@ -16,7 +17,7 @@ struct image {
     uint64_t size = 0;
     uint8_t bit_depth = 0;
     uint8_t channels = 0;
-    uint32_t texture_id = 0;
+    void* texture = nullptr;
     uint8_t* data = nullptr;
 
     ~image();
