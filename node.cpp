@@ -107,7 +107,7 @@ auto node_module_init(void) -> void {
 
                     SDL_ShowOpenFileDialog(
                         [](void* userdata, const char* const* filelist, int filter) {
-                            if (!filelist || !*filelist || filter < 0) return;
+                            if (!filelist || !*filelist) return;
 
                             auto img = reinterpret_cast<image*>(userdata);
                             img->unload();
