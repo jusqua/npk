@@ -106,7 +106,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(libtiff)
 
-set(IMGUI_COMMIT 3bae66c735670619baf51391eba7f3d90a25d125)
+set(IMGUI_COMMIT d3b36a875f0f7e7446b99606ca3d6df27b7dad7a)
 FetchContent_Declare(
   imgui
   URL https://github.com/ocornut/imgui/archive/${IMGUI_COMMIT}.tar.gz
@@ -115,10 +115,10 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(imgui)
 
-set(IMNODES_COMMIT 9de0b5c04218a2d35410774ee1ca637f4352198a)
+set(IMNODES_COMMIT 2d0c280b07b2f62b120034811cc6e41251673961)
 FetchContent_Declare(
   imnodes
-  URL https://github.com/sthagen/Nelarius-imnodes/archive/${IMNODES_COMMIT}.tar.gz
+  URL https://github.com/Nelarius/imnodes/archive/${IMNODES_COMMIT}.tar.gz
   DOWNLOAD_EXTRACT_TIMESTAMP ON
   SOURCE_SUBDIR .cmake-ignore
 )
