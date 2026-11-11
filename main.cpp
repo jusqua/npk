@@ -22,6 +22,31 @@ auto get_application_renderer() -> SDL_Renderer* {
 
 } // namespace npk
 
+auto setup_style(void) -> void {
+    auto main_scale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
+    auto& imgui_style = ImGui::GetStyle();
+    auto& imnodes_style = ImNodes::GetStyle();
+    if (SDL_GetSystemTheme() == SDL_SYSTEM_THEME_DARK) {
+        ImGui::StyleColorsDark();
+        ImNodes::StyleColorsDark();
+    } else {
+        ImGui::StyleColorsLight();
+        ImNodes::StyleColorsLight();
+    }
+    imgui_style.ScaleAllSizes(main_scale);
+    imgui_style.FontScaleDpi = main_scale;
+    imnodes_style.Flags |= ImNodesStyleFlags_GridLinesPrimary | ImNodesStyleFlags_GridSnapping;
+
+    // Based on https://github.com/ocornut/imgui/issues/707#issuecomment-4107169777
+    imgui_style.WindowPadding = ImVec2(8.0f, 8.0f);
+    imgui_style.FramePadding = ImVec2(5.0f, 3.0f);
+    imgui_style.CellPadding = ImVec2(6.0f, 4.0f);
+    imgui_style.ItemSpacing = ImVec2(6.0f, 4.0f);
+    imgui_style.ItemInnerSpacing = ImVec2(6.0f, 4.0f);
+    imgui_style.ScrollbarSize = 13.0f;
+    imgui_style.GrabMinSize = 10.0f;
+}
+
 int main(int, char**) {
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) {
         std::println("Error: SDL_Init(): {}", SDL_GetError());
@@ -56,15 +81,7 @@ int main(int, char**) {
     imnodes_io.LinkDetachWithModifierClick.Modifier = &imgui_io.KeyCtrl;
     imnodes_io.MultipleSelectModifier.Modifier = &imgui_io.KeyCtrl;
 
-    auto& imgui_style = ImGui::GetStyle();
-    auto& imnodes_style = ImNodes::GetStyle();
-    ImGui::StyleColorsDark();
-    ImNodes::StyleColorsDark();
-    imgui_style.FrameRounding = 3.0f;
-    imgui_style.GrabRounding = 3.0f;
-    imgui_style.ScaleAllSizes(main_scale);
-    imgui_style.FontScaleDpi = main_scale;
-    imnodes_style.Flags |= ImNodesStyleFlags_GridLinesPrimary | ImNodesStyleFlags_GridSnapping;
+    setup_style();
 
     ImGui_ImplSDL3_InitForSDLRenderer(window, s_renderer);
     ImGui_ImplSDLRenderer3_Init(s_renderer);
@@ -82,6 +99,8 @@ int main(int, char**) {
                 done = true;
             if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && event.window.windowID == SDL_GetWindowID(window))
                 done = true;
+            if (event.type == SDL_EVENT_SYSTEM_THEME_CHANGED)
+                setup_style();
         }
 
         if (SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED) {
