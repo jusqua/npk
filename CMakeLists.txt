@@ -124,6 +124,41 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(imnodes)
 
+add_library(imgui_lib STATIC
+    # Dear ImGui
+    ${imgui_SOURCE_DIR}/imgui.cpp
+    ${imgui_SOURCE_DIR}/imgui.h
+    ${imgui_SOURCE_DIR}/imgui_demo.cpp
+    ${imgui_SOURCE_DIR}/imgui_draw.cpp
+    ${imgui_SOURCE_DIR}/imgui_internal.h
+    ${imgui_SOURCE_DIR}/imgui_tables.cpp
+    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    ${imgui_SOURCE_DIR}/imstb_rectpack.h
+    ${imgui_SOURCE_DIR}/imstb_textedit.h
+    ${imgui_SOURCE_DIR}/imstb_truetype.h
+    # Dear ImGui Backends
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.h
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.h
+    # Nelarius ImNodes
+    ${imnodes_SOURCE_DIR}/imnodes.cpp
+    ${imnodes_SOURCE_DIR}/imnodes.h
+    ${imnodes_SOURCE_DIR}/imnodes_internal.h
+)
+target_include_directories(imgui_lib PUBLIC
+  # Dear ImGui
+  ${imgui_SOURCE_DIR}
+  # Dear ImGui Backends
+  ${imgui_SOURCE_DIR}/backends
+  # Nelarius ImNodes
+  ${imnodes_SOURCE_DIR}
+)
+target_link_libraries(imgui_lib PRIVATE
+    glfw
+    OpenGL::GL
+)
+
 set(HOK_COMMIT main)
 FetchContent_Declare(
   hok
@@ -133,22 +168,25 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(hok)
 
+add_library(hok_lib INTERFACE)
+target_include_directories(hok_lib INTERFACE ${hok_SOURCE_DIR})
+
 add_executable(${PROJECT_NAME})
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 26 CXX_STANDARD_REQUIRED ON)
 target_link_libraries(${PROJECT_NAME} PRIVATE
-  # Package dependencies
-  ZLIB::ZLIB
   # File picker
   nfd
-  # Backends
-  glfw
-  OpenGL::GL
   # Image loaders
   png_static
   tiffxx
+  # Windowing
+  imgui_lib
+  glfw
+  OpenGL::GL
+  # Processing
+  hok_lib
 )
 target_sources(${PROJECT_NAME} PRIVATE
-  # Npk
   utils.cpp
   utils.hpp
   application.cpp
@@ -168,37 +206,5 @@ target_sources(${PROJECT_NAME} PRIVATE
   graph.cpp
   graph.hpp
   main.cpp
-  # Dear ImGui
-  ${imgui_SOURCE_DIR}/imgui.cpp
-  ${imgui_SOURCE_DIR}/imgui.h
-  ${imgui_SOURCE_DIR}/imgui_demo.cpp
-  ${imgui_SOURCE_DIR}/imgui_draw.cpp
-  ${imgui_SOURCE_DIR}/imgui_internal.h
-  ${imgui_SOURCE_DIR}/imgui_tables.cpp
-  ${imgui_SOURCE_DIR}/imgui_widgets.cpp
-  ${imgui_SOURCE_DIR}/imstb_rectpack.h
-  ${imgui_SOURCE_DIR}/imstb_textedit.h
-  ${imgui_SOURCE_DIR}/imstb_truetype.h
-  # Dear ImGui Backends
-  ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
-  ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.h
-  ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
-  ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.h
-  # Nelarius ImNodes
-  ${imnodes_SOURCE_DIR}/imnodes.cpp
-  ${imnodes_SOURCE_DIR}/imnodes.h
-  ${imnodes_SOURCE_DIR}/imnodes_internal.h
-  # HOK
-  ${hok_SOURCE_DIR}/hok.hpp
-)
-target_include_directories(${PROJECT_NAME} PUBLIC
-  # Dear ImGui
-  ${imgui_SOURCE_DIR}
-  # Dear ImGui Backends
-  ${imgui_SOURCE_DIR}/backends
-  # Nelarius ImNodes
-  ${imnodes_SOURCE_DIR}
-  # HOK
-  ${hok_SOURCE_DIR}
 )
 add_sycl_to_target(TARGET ${PROJECT_NAME} SOURCES processing.cpp)
