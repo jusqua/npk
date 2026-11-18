@@ -11,9 +11,9 @@ Execute SYCL kernels with graph nodes.
 
 ## TODOs
 
-- Save processed images
-- NPK samples
-- NPK project save and load
+- [X] Save processed images
+- [ ] NPK samples
+- [ ] NPK project save and load
 
 ## Compiling
 

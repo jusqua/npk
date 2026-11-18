@@ -8,7 +8,6 @@
 #include <vector>
 
 #include <imgui.h>
-#include <imgui_internal.h>
 #include <imnodes.h>
 #include <SDL3/SDL.h>
 
@@ -86,7 +85,7 @@ auto node_module_init(void) -> void {
                 ImGui::TextUnformatted(self->name().data());
                 ImNodes::EndNodeTitleBar();
 
-                if (ImGui::Button("^ Open image file", {0, 16})) {
+                if (ImGui::Button("Load image from file", {0, 16})) {
                     auto& modules = image_module_list();
 
                     auto extensions = std::vector<std::string>();
@@ -1972,6 +1971,43 @@ auto node_module_init(void) -> void {
                 ImGui::TextUnformatted(self->name().data());
                 ImNodes::EndNodeTitleBar();
 
+                ImNodes::BeginInputAttribute(attr.uid());
+                if (!img) ImGui::BeginDisabled();
+                if (ImGui::Button("Store image to file", {0, 16})) {
+                    auto& modules = npk::image_module_list();
+
+                    auto extensions = std::vector<std::string>();
+                    extensions.reserve(modules.size() + 1);
+                    auto filters = std::vector<SDL_DialogFileFilter>{};
+                    filters.reserve(modules.size() + 1);
+
+                    filters.emplace_back("Supported image files", nullptr);
+                    for (auto& module : modules) {
+                        auto extension = module.extensions()
+                            | std::views::transform([](auto&& str) { return str | std::views::drop(1); })
+                            | std::views::join_with(';')
+                            | std::ranges::to<std::string>();
+                        filters.emplace_back(module.name().data(), extensions.emplace_back(std::move(extension)).c_str());
+                    }
+                    extensions.emplace_back(extensions | std::views::join_with(';') | std::ranges::to<std::string>());
+                    filters.front().pattern = extensions.back().c_str();
+
+                    SDL_ShowSaveFileDialog(
+                        [](void* userdata, const char* const* filelist, int filter) {
+                            if (!filelist || !*filelist) return;
+
+                            auto img = reinterpret_cast<image*>(userdata);
+                            img->store(*filelist);
+                        },
+                        img,
+                        nullptr,
+                        filters.data(),
+                        filters.size(),
+                        nullptr
+                    );
+                }
+                if (!img) ImGui::EndDisabled();
+
                 constexpr auto base = 256;
                 auto width = base;
                 auto height = base;
@@ -1980,9 +2016,6 @@ auto node_module_init(void) -> void {
                     if (img->height > img->width) height = img->height * base / img->width;
                 }
                 ImGui::Image(img ? img->texture : nullptr, ImVec2(width, height));
-
-                ImNodes::BeginInputAttribute(attr.uid());
-                ImGui::TextUnformatted(attr.name().data());
                 ImNodes::EndInputAttribute();
                 ImNodes::EndNode();
             };
